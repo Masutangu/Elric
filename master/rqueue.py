@@ -1,7 +1,7 @@
 __author__ = 'moxu'
 import redis
-from rq import Queue
 from master.base import ElricMaster
+from jobqueue.rqueue import RedisJobQueue
 from time import sleep
 
 class RQMaster(ElricMaster):
@@ -18,7 +18,7 @@ class RQMaster(ElricMaster):
 
     def add_queue(self, key):
         if key not in self.queue_list.keys():
-            self.queue_list[key] = Queue(key, connection=self.server)
+            self.queue_list[key] = RedisJobQueue(self.server, key)
             return self.queue_list[key]
         else:
             return None
@@ -61,6 +61,6 @@ class RQMaster(ElricMaster):
             print 'master running ....'
             sleep(3)
             for k, q in self.queue_list.items():
-                print q.jobs
+                print len(q)
 
 

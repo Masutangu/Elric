@@ -10,3 +10,9 @@ def complete_calculate():
     sleep(10)
     f.write('finish!!')
     f.close()
+
+
+def hello_world():
+    print 'hello world'
+    sleep(3)
+    print 'finish'
