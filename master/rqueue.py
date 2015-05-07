@@ -1,10 +1,10 @@
-__author__ = 'moxu'
+__author__ = 'Masutangu'
 import redis
-from master.base import ElricMaster
+from master.base import BaseMaster
 from jobqueue.rqueue import RedisJobQueue
 from time import sleep
 
-class RQMaster(ElricMaster):
+class RQMaster(BaseMaster):
 
     def __init__(self, host=None, port=None, url=None):
         self.queue_list = {}
@@ -12,9 +12,8 @@ class RQMaster(ElricMaster):
             self.server = redis.from_url(url)
         else:
             self.server = redis.Redis(host=host, port=port)
-        ElricMaster.__init__(self)
+        BaseMaster.__init__(self)
         self.running = True
-
 
     def add_queue(self, key):
         if key not in self.queue_list.keys():
@@ -23,7 +22,6 @@ class RQMaster(ElricMaster):
         else:
             return None
 
-
     def submit_job(self, key, job):
         """
             receive rpc request from worker and save job into jobstore
@@ -31,9 +29,8 @@ class RQMaster(ElricMaster):
             :param job: job
             :return: None
         """
-        print 'client call submit job'
+        print 'client call submit job %s' % job
         self._enqueue_job(key, job)
-
 
     def cancel_job(self, key, job):
         """
@@ -44,7 +41,6 @@ class RQMaster(ElricMaster):
         """
         print 'client call cancel job'
 
-
     def _enqueue_job(self, key, job):
         """
             put job into work queue
@@ -53,7 +49,6 @@ class RQMaster(ElricMaster):
             :return: None
         """
         self.queue_list[key].enqueue(job)
-
 
     def run(self):
         print 'master start...'
