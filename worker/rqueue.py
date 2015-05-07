@@ -46,7 +46,7 @@ class RQWorker(BaseWorker):
             print 'worker running..'
             while True:
                 key, job_info = RedisJobQueue.dequeue_any(self.server, self.listen_keys)
-                print 'get job %s from key %s' % (job_info, key)
+                #print 'get job %s from key %s' % (job_info, key)
                 job = Job.deserialize(job_info)
                 print 'job.func', job.func
                 self.executor.execute_job(job)

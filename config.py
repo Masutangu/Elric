@@ -1,4 +1,4 @@
-__author__ = 'moxu'
+__author__ = 'Masutangu'
 
 RPC_SERVER_HOST = 'localhost'
 RPC_SERVER_PORT = 8000

@@ -1,7 +1,10 @@
-__author__ = 'moxu'
+__author__ = 'Masutangu'
 from core.utils import ref_to_obj, obj_to_ref, check_callable_args
-import json
-
+#try:
+#    import cPickle as pickle
+#except ImportError:  # pragma: nocover
+#    import pickle
+import pickle
 
 class Job(object):
 
@@ -33,11 +36,11 @@ class Job(object):
             'args': self.args,
             'kwargs':self.kwargs
         }
-        return json.dumps(job_in_dict)
+        return pickle.dumps(job_in_dict)
 
     @classmethod
     def deserialize(cls, serialization):
-        job_in_dict = json.loads(serialization)
+        job_in_dict = pickle.loads(serialization)
         return cls(**job_in_dict)
 
 

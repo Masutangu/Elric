@@ -1,4 +1,4 @@
-__author__ = 'moxu'
+__author__ = 'Masutangu'
 
 from jobqueue.base import JobQueue
 

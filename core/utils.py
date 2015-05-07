@@ -1,10 +1,12 @@
-__author__ = 'moxu'
+__author__ = 'Masutangu'
 """
     copy from apscheduler.util.py
 """
 
 import six
 from inspect import isfunction, ismethod, getargspec
+import signal
+
 
 try:
     from inspect import signature
@@ -14,6 +16,9 @@ except ImportError:  # pragma: nocover
     except ImportError:
         signature = None
 
+_signames = dict((getattr(signal, signame), signame)
+                 for signame in dir(signal)
+                 if signame.startswith('SIG') and '_' not in signame)
 
 
 def get_callable_name(func):
@@ -192,3 +197,12 @@ def check_callable_args(func, args, kwargs):
     if not has_var_kwargs and unmatched_kwargs:
         raise ValueError('The target callable does not accept the following keyword arguments: %s' %
                          ', '.join(unmatched_kwargs))
+
+
+def signal_name(signum):
+    # Hackety-hack-hack: is there really no better way to reverse lookup the
+    # signal name?  If you read this and know a way: please provide a patch :)
+    try:
+        return _signames[signum]
+    except KeyError:
+        return 'SIG_UNKNOWN'
