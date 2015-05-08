@@ -16,7 +16,8 @@ class ProcessPoolExecutor(BaseExecutor):
         try:
             def job_done(f):
                 if f.exception():
-                    self.log.error('job %s occurs error. exception info %s' % (job, f.exection_info()))
+                    print 'ex'
+                    self.log.error('job %s occurs error. exception info %s' % (job, f.exception_info()))
                     #print 'job %s occurs error. exception info %s' % (job, f.exection_info())
                 else:
                     self.log.debug('job %s finish, result=%s' % (job, f.result()))

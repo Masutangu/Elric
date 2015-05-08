@@ -12,8 +12,7 @@ class Job(object):
         func = job_info.pop('func')
         self.args = job_info.pop('args')
         self.kwargs = job_info.pop('kwargs')
-        self.trigger = job_info.pop('trigger')
-
+        self.trigger = job_info.pop('trigger', None)
 
         ref_to_func = None
         if isinstance(func, str):
