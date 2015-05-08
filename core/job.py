@@ -1,10 +1,10 @@
 __author__ = 'Masutangu'
 from core.utils import ref_to_obj, obj_to_ref, check_callable_args
-#try:
-#    import cPickle as pickle
-#except ImportError:  # pragma: nocover
-#    import pickle
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:  # pragma: nocover
+    import pickle
+
 
 class Job(object):
 
@@ -12,6 +12,8 @@ class Job(object):
         func = job_info.pop('func')
         self.args = job_info.pop('args')
         self.kwargs = job_info.pop('kwargs')
+        self.trigger = job_info.pop('trigger')
+
 
         ref_to_func = None
         if isinstance(func, str):
@@ -24,7 +26,6 @@ class Job(object):
 
         self.ref_to_func = ref_to_func
         self.func = func
-
 
     def serialize(self):
         """

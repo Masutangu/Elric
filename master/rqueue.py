@@ -4,6 +4,7 @@ from master.base import BaseMaster
 from jobqueue.rqueue import RedisJobQueue
 from time import sleep
 
+
 class RQMaster(BaseMaster):
 
     def __init__(self, host=None, port=None, url=None):
@@ -30,6 +31,7 @@ class RQMaster(BaseMaster):
             :return: None
         """
         print 'client call submit job %s' % job
+
         self._enqueue_job(key, job)
 
     def cancel_job(self, key, job):

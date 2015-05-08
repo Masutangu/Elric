@@ -10,6 +10,7 @@ from xmlrpclib import Binary
 from worker.base import BaseWorker
 from jobqueue.rqueue import RedisJobQueue
 from executor.pool import ProcessPoolExecutor
+from trigger.interval import IntervalTrigger
 
 
 class RQWorker(BaseWorker):
@@ -55,7 +56,7 @@ class RQWorker(BaseWorker):
             print 'worker stopped'
             self.stop()
 
-    def submit_job(self, key, func, args=None, kwargs=None):
+    def submit_job(self, key, func, args=None, kwargs=None, trigger=None, **trigger_args):
         """
             submit job to master through rpc
             :param key:
@@ -65,6 +66,7 @@ class RQWorker(BaseWorker):
         job_info = {
             'func': func,
             'args': tuple(args) if args is not None else (),
+            'trigger': self._create_trigger(trigger, trigger_args) if trigger else None,
             'kwargs': dict(kwargs) if kwargs is not None else {},
         }
         job = Job(**job_info)
@@ -79,6 +81,13 @@ class RQWorker(BaseWorker):
             :return:
         """
         self.rpc_client.cancel_job(key, job)
+
+    def _create_trigger(self, trigger_name, trigger_args):
+        trigger_class = {
+            'interval': IntervalTrigger,
+        }[trigger_name]
+
+        return trigger_class.create_trigger(**trigger_args)
 
     @property
     def running(self):

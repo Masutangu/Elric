@@ -3,6 +3,7 @@ __author__ = 'Masutangu'
 import SocketServer
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
+
 class ElricRPCServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
 
     def __init__(self, *args, **kwargs):

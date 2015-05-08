@@ -2,6 +2,7 @@ __author__ = 'Masutangu'
 
 from executor.base import BaseExecutor
 import concurrent.futures
+from core.exceptions import StopRequested
 
 
 class ProcessPoolExecutor(BaseExecutor):
@@ -12,15 +13,18 @@ class ProcessPoolExecutor(BaseExecutor):
         self.log.debug('start executor..')
 
     def execute_job(self, job):
-        def job_done(f):
-            if f.exception():
-                self.log.error('job %s occurs error. exception info %s' % (job, f.exection_info()))
-                #print 'job %s occurs error. exception info %s' % (job, f.exection_info())
-            else:
-                self.log.debug('job %s finish, result=%s' % (job, f.result()))
-                #print 'job %s finish, result=%s' % (job, f.result())
-        future = self._pool.submit(job.func, *job.args, **job.kwargs)
-        future.add_done_callback(job_done)
+        try:
+            def job_done(f):
+                if f.exception():
+                    self.log.error('job %s occurs error. exception info %s' % (job, f.exection_info()))
+                    #print 'job %s occurs error. exception info %s' % (job, f.exection_info())
+                else:
+                    self.log.debug('job %s finish, result=%s' % (job, f.result()))
+                    #print 'job %s finish, result=%s' % (job, f.result())
+            future = self._pool.submit(job.func, *job.args, **job.kwargs)
+            future.add_done_callback(job_done)
+        except StopRequested:
+            self.log.warning('executor quit...')
 
     def shutdown(self, wait=True):
         self._pool.shutdown(wait)
