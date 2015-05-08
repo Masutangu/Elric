@@ -7,3 +7,7 @@ class StopRequested(Exception):
 
 class AlreadyRunningException(Exception):
     pass
+
+
+class AddQueueFailed(Exception):
+    pass

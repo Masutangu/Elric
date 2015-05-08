@@ -3,7 +3,9 @@ import redis
 from master.base import BaseMaster
 from jobqueue.rqueue import RedisJobQueue
 from time import sleep
-
+import six
+from collections import Iterable
+from core.exceptions import AddQueueFailed
 
 class RQMaster(BaseMaster):
 
@@ -16,12 +18,15 @@ class RQMaster(BaseMaster):
         BaseMaster.__init__(self)
         self.running = True
 
-    def add_queue(self, key):
-        if key not in self.queue_list.keys():
-            self.queue_list[key] = RedisJobQueue(self.server, key)
-            return self.queue_list[key]
-        else:
-            return None
+    def add_queue(self, keys):
+        if isinstance(keys, six.string_types):
+            keys = [keys,]
+        if not isinstance(keys, Iterable):
+            raise AddQueueFailed
+        for key in keys:
+            if key not in self.queue_list.keys():
+                self.queue_list[key] = RedisJobQueue(self.server, key)
+
 
     def submit_job(self, key, job):
         """

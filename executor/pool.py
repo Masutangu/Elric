@@ -18,10 +18,8 @@ class ProcessPoolExecutor(BaseExecutor):
                 if f.exception():
                     print 'ex'
                     self.log.error('job %s occurs error. exception info %s' % (job, f.exception_info()))
-                    #print 'job %s occurs error. exception info %s' % (job, f.exection_info())
                 else:
                     self.log.debug('job %s finish, result=%s' % (job, f.result()))
-                    #print 'job %s finish, result=%s' % (job, f.result())
             future = self._pool.submit(job.func, *job.args, **job.kwargs)
             future.add_done_callback(job_done)
         except StopRequested:
