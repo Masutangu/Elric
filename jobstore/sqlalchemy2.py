@@ -44,6 +44,7 @@ class SQLAlchemyJobStore(BaseJobStore):
         self.session = Session()
 
     def add_job(self, job_id, job_key, next_run_time, serialized_job):
+        timestamp = datetime_to_utc_timestamp(next_run_time)
         try:
             job = ElricJob(id=job_id, job_key=job_key,
                 next_run_time=datetime_to_utc_timestamp(next_run_time),

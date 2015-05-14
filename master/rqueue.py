@@ -8,10 +8,11 @@ import six
 from collections import Iterable
 from core.exceptions import AddQueueFailed, JobAlreadyExist, JobDoesNotExist
 from jobstore.sqlalchemy2 import SQLAlchemyJobStore
+from jobstore.memory import MemoryJobStore
 from datetime import datetime
 from tzlocal import get_localzone
 from core.job import Job
-from core.utils import timedelta_seconds, datetime_to_utc_timestamp, convert_to_datetime
+from core.utils import timedelta_seconds
 from threading import Event, RLock
 from xmlrpclib import Binary
 
@@ -31,7 +32,8 @@ class RQMaster(BaseMaster):
         self.timezone = timezone or get_localzone()
         self._event = Event()
         self.running = True
-        self.jobstore = SQLAlchemyJobStore("sqlite:///jobs.sqlite?check_same_thread=False")
+        #self.jobstore = SQLAlchemyJobStore("sqlite:///jobs.sqlite?check_same_thread=False")
+        self.jobstore = MemoryJobStore()
         self.jobstore_lock = RLock()
 
     def add_queue(self, keys):
