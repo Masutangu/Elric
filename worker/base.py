@@ -32,7 +32,7 @@ class BaseWorker(object):
         self.rpc_client = self.init_rpc_client()
 
     @abstractmethod
-    def run(self):
+    def start(self):
         raise NotImplementedError('subclasses of Master must provide a run() method')
 
     def init_rpc_client(self):
