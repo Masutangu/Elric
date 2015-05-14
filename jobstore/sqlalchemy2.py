@@ -44,7 +44,6 @@ class SQLAlchemyJobStore(BaseJobStore):
         self.session = Session()
 
     def add_job(self, job_id, job_key, next_run_time, serialized_job):
-        timestamp = datetime_to_utc_timestamp(next_run_time)
         try:
             job = ElricJob(id=job_id, job_key=job_key,
                 next_run_time=datetime_to_utc_timestamp(next_run_time),
@@ -59,13 +58,13 @@ class SQLAlchemyJobStore(BaseJobStore):
     #TODO: raise error when job_id does not exist
     def update_job(self, job_id, job_key=None, next_run_time=None, serialized_job=None, status=None):
         new_value = {}
-        if job_key:
+        if job_key is not None:
             new_value['job_key'] = job_key
-        if next_run_time:
-            new_value['next_run_time'] = next_run_time
-        if serialized_job:
+        if next_run_time is not None:
+            new_value['next_run_time'] = datetime_to_utc_timestamp(next_run_time)
+        if serialized_job is not None:
             new_value['serialized_job'] = serialized_job
-        if status or status == 0:
+        if status is not None:
             new_value['status'] = status
         self.session.query(ElricJob).filter_by(id=job_id).update(new_value)
         self.session.commit()

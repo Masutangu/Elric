@@ -117,8 +117,6 @@ class RQMaster(BaseMaster):
                     if next_run_time:
                         # update job next run time in jobstore
                         job_in_dict['next_run_time'] = next_run_time
-                        next_run_time = datetime_to_utc_timestamp(convert_to_datetime(
-                            next_run_time, self.timezone, 'next_run_time'))
                         self.update_job(job_id, job_key, next_run_time, Job.dict_to_serialization(job_in_dict))
                     else:
                         # if job has no next run time, then remove it from jobstore
