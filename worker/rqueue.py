@@ -41,7 +41,7 @@ class RQWorker(BaseWorker):
     #     signal.signal(signal.SIGINT, request_stop)
     #     signal.signal(signal.SIGTERM, request_stop)
 
-    def run(self):
+    def start(self):
         #self._install_signal_handlers()
         if self.running:
             raise AlreadyRunningException
