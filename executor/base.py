@@ -1,12 +1,14 @@
-__author__ = 'Masutangu'
+# -*- coding: utf-8 -*-
+from __future__ import (absolute_import, unicode_literals)
 
 import logging
 import logging.handlers
 from abc import ABCMeta, abstractmethod
 
-executor_logger = logging.getLogger('executor')
+executor_logger = logging.getLogger(__name__)
 executor_logger.setLevel(logging.DEBUG)
-handler = logging.handlers.RotatingFileHandler('executor.log', maxBytes=10000000, backupCount=5)
+#handler = logging.handlers.RotatingFileHandler('%s.log' % __name__, maxBytes=10000000, backupCount=5)
+handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
@@ -18,7 +20,6 @@ class BaseExecutor(object):
 
     def __init__(self, logger=None):
         self.log = logger or executor_logger
-        #pass
 
     @abstractmethod
     def execute_job(self, job):

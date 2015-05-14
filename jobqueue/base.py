@@ -1,14 +1,16 @@
-__author__ = 'Masutangu'
+# -*- coding: utf-8 -*-
+from __future__ import (absolute_import, unicode_literals)
 
 from abc import ABCMeta, abstractmethod
 
 
 class JobQueue(object):
-    __metaclass__ = ABCMeta
     """
         baseclass of job queue
         redis job queue/zmq job queue or customer job queue should inherit from this class
     """
+    __metaclass__ = ABCMeta
+
     @abstractmethod
     def __len__(self):
         raise NotImplementedError

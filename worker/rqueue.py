@@ -1,100 +1,99 @@
-__author__ = 'Masutangu'
-
+# -*- coding: utf-8 -*-
+from __future__ import (absolute_import, unicode_literals)
 
 import redis
-import signal
-from core.utils import signal_name
 from core.job import Job
-from core.exceptions import StopRequested, AlreadyRunningException
+from core.exceptions import AlreadyRunningException
 from xmlrpclib import Binary
 from worker.base import BaseWorker
 from jobqueue.rqueue import RedisJobQueue
 from executor.pool import ProcessPoolExecutor
-from trigger.interval import IntervalTrigger
+from tzlocal import get_localzone
+from trigger.tool import create_trigger
 
 
 class RQWorker(BaseWorker):
 
-    def __init__(self, host=None, port=None, url=None, listen_keys=None, worker_num=2, logger=None):
+    def __init__(self, name, host=None, port=None, url=None, listen_keys=None,
+                                worker_num=2, logger=None, timezone=None):
+        BaseWorker.__init__(self, name, logger)
         if url:
             self.server = redis.from_url(url)
         else:
             self.server = redis.Redis(host=host, port=port)
         self.listen_keys = []
         if listen_keys:
-            self.listen_keys = listen_keys
+            self.listen_keys = ['%s:%s' % (self.name, listen_key) for listen_key in listen_keys]
+
+        self.timezone = timezone or get_localzone()
         self.executor = ProcessPoolExecutor(max_workers=worker_num)
         self._stopped = True
-        BaseWorker.__init__(self, logger)
 
-    def _install_signal_handlers(self):
-        """
-            Installs signal handlers for handling SIGINT and SIGTERM gracefully.
-            quote from python-rq
-        """
-        def request_stop(signum, frame):
-            self.log.debug('Got signal %s.' % signal_name(signum))
-            raise StopRequested()
-
-        signal.signal(signal.SIGINT, request_stop)
-        signal.signal(signal.SIGTERM, request_stop)
+    # def _install_signal_handlers(self):
+    #     """
+    #         Installs signal handlers for handling SIGINT and SIGTERM gracefully.
+    #         quote from python-rq
+    #     """
+    #     def request_stop(signum, frame):
+    #         self.log.debug('Got signal %s.' % signal_name(signum))
+    #         raise StopRequested()
+    #
+    #     signal.signal(signal.SIGINT, request_stop)
+    #     signal.signal(signal.SIGTERM, request_stop)
 
     def run(self):
-        self._install_signal_handlers()
+        #self._install_signal_handlers()
         if self.running:
             raise AlreadyRunningException
-        try:
-            print 'worker running..'
-            while True:
-                key, job_info = RedisJobQueue.dequeue_any(self.server, self.listen_keys)
-                #print 'get job %s from key %s' % (job_info, key)
-                job = Job.deserialize(job_info)
-                print 'job.func', job.func
-                self.executor.execute_job(job)
 
-        except StopRequested:
-            print 'worker stopped'
-            self.stop()
+        self._stopped = False
+        self.log.debug('worker running..')
+        while self.running:
+            key, serialized_job = RedisJobQueue.dequeue_any(self.server, self.listen_keys)
+            job = Job.deserialize(serialized_job)
+            self.log.debug('get job id=[%s] func=[%s]from key %s' % (job.id, job.func, key))
+            self.executor.execute_job(job)
 
-    def submit_job(self, key, func, args=None, kwargs=None, trigger=None, **trigger_args):
+    def submit_job(self, func, job_key, args=None, kwargs=None, trigger=None, job_id=None,
+                    replace_exist=False, **trigger_args):
         """
             submit job to master through rpc
             :param key:
             :param job:
             :return:
         """
-        job_info = {
+        # use worker's timezone if trigger don't provide specific `timezone` configuration
+        job_key = '%s:%s' % (self.name, job_key)
+        trigger_args['timezone'] = self.timezone
+        job_in_dict = {
+            'id': job_id,
             'func': func,
-            'args': tuple(args) if args is not None else (),
-            'trigger': self._create_trigger(trigger, trigger_args) if trigger else None,
-            'kwargs': dict(kwargs) if kwargs is not None else {},
+            'args': args,
+            'trigger': create_trigger(trigger, trigger_args) if trigger else None,
+            'kwargs': kwargs,
         }
-        job = Job(**job_info)
-        #self.rpc_client.submit_job(key, decode_binary_data(job.serialize()))
-        self.rpc_client.submit_job(key, Binary(job.serialize()))
+        job = Job(**job_in_dict)
+        self.rpc_client.submit_job(Binary(job.serialize()), job_key, job.id, replace_exist)
 
-    def cancel_job(self, key, job):
+    def update_job(self, job_id, job_key, next_run_time, serialized_job):
+        job_key = '%s:%s' % (self.name, job_key)
+        self.rpc_client.update_job(job_id, job_key, next_run_time, Binary(serialized_job))
+
+    def remove_job(self, job_id):
         """
             cancel job to master through rpc
             :param key:
             :param job:
             :return:
         """
-        self.rpc_client.cancel_job(key, job)
-
-    def _create_trigger(self, trigger_name, trigger_args):
-        trigger_class = {
-            'interval': IntervalTrigger,
-        }[trigger_name]
-
-        return trigger_class.create_trigger(**trigger_args)
+        self.rpc_client.remove_job(job_id)
 
     @property
     def running(self):
         return not self._stopped
 
     def stop(self):
-        print 'Worker is quiting'
+        self.log.debug('Worker is quiting')
         self._stopped = True
         self.executor.shutdown()
 

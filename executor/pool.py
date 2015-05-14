@@ -1,4 +1,5 @@
-__author__ = 'Masutangu'
+# -*- coding: utf-8 -*-
+from __future__ import (absolute_import, unicode_literals)
 
 from executor.base import BaseExecutor
 import concurrent.futures
@@ -16,7 +17,6 @@ class ProcessPoolExecutor(BaseExecutor):
         try:
             def job_done(f):
                 if f.exception():
-                    print 'ex'
                     self.log.error('job %s occurs error. exception info %s' % (job, f.exception_info()))
                 else:
                     self.log.debug('job %s finish, result=%s' % (job, f.result()))

@@ -1,17 +1,16 @@
-__author__ = 'Masutangu'
+# -*- coding: utf-8 -*-
 """
-    copy from apscheduler.util and python-rq
+    note: this file contains utils function copy from apscheduler and rq
 """
+from __future__ import (absolute_import, unicode_literals)
 
 import six
-from inspect import isfunction, ismethod, getargspec
 import signal
+from inspect import isfunction, ismethod, getargspec
 from datetime import date, datetime, time, timedelta, tzinfo
 from pytz import timezone, utc
 import re
 from calendar import timegm
-
-
 try:
     from inspect import signature
 except ImportError:  # pragma: nocover
@@ -19,6 +18,7 @@ except ImportError:  # pragma: nocover
         from funcsigs import signature
     except ImportError:
         signature = None
+
 
 _signames = dict((getattr(signal, signame), signame)
                  for signame in dir(signal)
@@ -100,6 +100,7 @@ def ref_to_obj(ref):
         return obj
     except Exception:
         raise LookupError('Error resolving reference %s: error looking up object' % ref)
+
 
 def check_callable_args(func, args, kwargs):
     """
@@ -304,7 +305,7 @@ def datetime_to_utc_timestamp(timeval):
     """
 
     if timeval is not None:
-        return timegm(timeval.utctimetuple()) + timeval.microsecond / 1000000
+        return timegm(timeval.utctimetuple()) + float(timeval.microsecond) / 1000000
 
 
 def utc_timestamp_to_datetime(timestamp):

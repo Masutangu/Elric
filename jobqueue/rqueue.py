@@ -1,6 +1,8 @@
-__author__ = 'Masutangu'
+# -*- coding: utf-8 -*-
+from __future__ import (absolute_import, unicode_literals)
 
 from jobqueue.base import JobQueue
+
 
 class RedisJobQueue(JobQueue):
 
@@ -23,11 +25,10 @@ class RedisJobQueue(JobQueue):
 
     @classmethod
     def dequeue_any(cls, server, queue_keys, timeout=0):
-        result = server.blpop(queue_keys, timeout)
+        result = server.brpop(queue_keys, timeout)
         if result:
             queue_key, data = result
             return queue_key, data
-
 
     def clear(self):
         self.server.delete(self.key)
