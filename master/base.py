@@ -45,7 +45,7 @@ class BaseMaster(object):
         raise NotImplementedError('subclasses of Master must provide a remove_job() method')
 
     def start_rpc_server(self):
-        print 'start rpc server...'
+        self.log.debug('start rpc server...')
         rpc_server = ElricRPCServer((RPC_SERVER_HOST, RPC_SERVER_PORT))
         thd = threading.Thread(target=rpc_server.serve_forever)
         thd.setDaemon(True)

@@ -10,6 +10,7 @@ from jobqueue.rqueue import RedisJobQueue
 from executor.pool import ProcessPoolExecutor
 from tzlocal import get_localzone
 from trigger.tool import create_trigger
+from core.rpc import rpc_client_call
 
 
 class RQWorker(BaseWorker):
@@ -73,11 +74,15 @@ class RQWorker(BaseWorker):
             'kwargs': kwargs,
         }
         job = Job(**job_in_dict)
-        self.rpc_client.submit_job(Binary(job.serialize()), job_key, job.id, replace_exist)
+        rpc_client_call(self.rpc_host, self.rpc_port, 'submit_job', Binary(job.serialize()),
+                        job_key, job.id, replace_exist)
+        #self.rpc_client.submit_job(Binary(job.serialize()), job_key, job.id, replace_exist)
 
     def update_job(self, job_id, job_key, next_run_time, serialized_job):
         job_key = '%s:%s' % (self.name, job_key)
-        self.rpc_client.update_job(job_id, job_key, next_run_time, Binary(serialized_job))
+        rpc_client_call(self.rpc_host, self.rpc_port, 'update_job', job_id, job_key,
+                        next_run_time, Binary(serialized_job))
+        #self.rpc_client.update_job(job_id, job_key, next_run_time, Binary(serialized_job))
 
     def remove_job(self, job_id):
         """
@@ -86,7 +91,8 @@ class RQWorker(BaseWorker):
             :param job:
             :return:
         """
-        self.rpc_client.remove_job(job_id)
+        rpc_client_call(self.rpc_host, self.rpc_port, 'remove_job', job_id)
+        #self.rpc_client.remove_job(job_id)
 
     @property
     def running(self):
