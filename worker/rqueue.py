@@ -59,12 +59,12 @@ class RQWorker(BaseWorker):
                     replace_exist=False, **trigger_args):
         """
             submit job to master through rpc
-            :type func: str or callable obj
-            :type job_key: str
+            :type func: str or callable obj or unicode
+            :type job_key: str or unicode
             :type args: tuple or list
             :type kwargs: dict
-            :type trigger: str
-            :type job_id: str
+            :type trigger: str or unicode
+            :type job_id: str or unicode
             :type replace_exist: bool
             :type trigger_args: dict
         """

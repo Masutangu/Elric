@@ -318,3 +318,31 @@ def utc_timestamp_to_datetime(timestamp):
 
     if timestamp is not None:
         return datetime.fromtimestamp(timestamp, utc)
+
+
+def datetime_repr(dateval):
+    return dateval.strftime('%Y-%m-%d %H:%M:%S %Z') if dateval else 'None'
+
+
+def datetime_ceil(dateval):
+    """
+    Rounds the given datetime object upwards.
+
+    :type dateval: datetime
+    """
+
+    if dateval.microsecond > 0:
+        return dateval + timedelta(seconds=1, microseconds=-dateval.microsecond)
+    return dateval
+
+
+def asint(text):
+    """
+    Safely converts a string to an integer, returning None if the string is None.
+
+    :type text: str
+    :rtype: int
+    """
+
+    if text is not None:
+        return int(text)

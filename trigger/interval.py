@@ -14,21 +14,20 @@ from math import ceil
 class IntervalTrigger(BaseTrigger):
 
     def __init__(self, weeks=0, days=0, hours=0, minutes=0, seconds=0, start_date=None, end_date=None, timezone=None):
+        if timezone:
+            timezone = astimezone(timezone)
+        elif start_date and start_date.tzinfo:
+            timezone = start_date.tzinfo
+        elif end_date and end_date.tzinfo:
+            timezone = end_date.tzinfo
+        else:
+            timezone = get_localzone()
+        BaseTrigger.__init__(self, timezone)
         self.interval = timedelta(weeks=weeks, days=days, hours=hours, minutes=minutes, seconds=seconds)
         self.interval_length = timedelta_seconds(self.interval)
         if self.interval_length == 0:
             self.interval = timedelta(seconds=1)
             self.interval_length = 1
-
-        if timezone:
-            self.timezone = astimezone(timezone)
-        elif start_date and start_date.tzinfo:
-            self.timezone = start_date.tzinfo
-        elif end_date and end_date.tzinfo:
-            self.timezone = end_date.tzinfo
-        else:
-            self.timezone = get_localzone()
-
         start_date = start_date or (datetime.now(self.timezone) + self.interval)
         self.start_date = convert_to_datetime(start_date, self.timezone, 'start_date')
         self.end_date = convert_to_datetime(end_date, self.timezone, 'end_date')
@@ -49,7 +48,3 @@ class IntervalTrigger(BaseTrigger):
 
         if not self.end_date or next_trigger_time <= self.end_date:
             return self.timezone.normalize(next_trigger_time)
-
-    @classmethod
-    def create_trigger(cls, **trigger_args):
-        return cls(**trigger_args)

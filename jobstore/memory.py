@@ -60,6 +60,7 @@ class MemoryJobStore(BaseJobStore):
         self.log.debug("job_run_time = %s" % self.job_run_time)
 
     def remove_job(self, job_id):
+        self.log.debug("before remove job run time = %s" % self.job_run_time)
         """
             remove job
             :type job_id: str
@@ -70,6 +71,7 @@ class MemoryJobStore(BaseJobStore):
         index = self._get_job_index(job_id, job_info['next_timestamp'])
         del self.job_info[job_id]
         del self.job_run_time[index]
+        self.log.debug("after remove job run time = %s" % self.job_run_time)
 
     def get_due_jobs(self, now):
         """
