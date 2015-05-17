@@ -7,3 +7,6 @@ from abc import ABCMeta, abstractmethod
 class BaseJobStore(object):
     __metaclass__ = ABCMeta
 
+    def __init__(self, logger):
+        self.log = logger
+

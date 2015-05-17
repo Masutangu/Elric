@@ -28,3 +28,7 @@ class AddFilterFailed(Exception):
 
 class WrongType(Exception):
     pass
+
+
+class ParseConfigurationError(Exception):
+    pass

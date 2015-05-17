@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+    this file quote from apscheduler.trigger
+"""
 from __future__ import (absolute_import, unicode_literals)
 
 from trigger.base import BaseTrigger
@@ -6,10 +9,6 @@ from datetime import timedelta, datetime
 from core.utils import timedelta_seconds, astimezone, convert_to_datetime
 from tzlocal import get_localzone
 from math import ceil
-
-"""
-    quote from apscheduler.trigger
-"""
 
 
 class IntervalTrigger(BaseTrigger):

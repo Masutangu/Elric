@@ -37,7 +37,8 @@ class ElricJob(Base):
 
 
 class SQLAlchemyJobStore(BaseJobStore):
-    def __init__(self, url):
+    def __init__(self, url, logger):
+        BaseJobStore.__init__(logger)
         self.engine = create_engine(url, echo=True)
         Base.metadata.create_all(self.engine)
         Session.configure(bind=self.engine)

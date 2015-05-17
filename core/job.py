@@ -83,39 +83,3 @@ class Job(object):
     @classmethod
     def get_next_trigger_time(cls, job_in_dict, run_time):
         return job_in_dict['trigger'].get_next_trigger_time(run_time)
-
-    def update(self, **new_info):
-        if 'args' in new_info:
-            self.args = new_info.pop('args')
-        if 'kwargs' in new_info:
-            self.kwargs = new_info.pop('kwargs')
-        if 'func' in new_info:
-            func = new_info.pop('func')
-            ref_to_func = None
-            if isinstance(func, str):
-                ref_to_func = func
-                func = ref_to_obj(func)
-            elif callable(func):
-                ref_to_func = obj_to_ref(func)
-
-            check_callable_args(func, self.args, self.kwargs)
-
-            self.ref_to_func = ref_to_func
-            self.func = func
-
-        if 'trigger' in new_info:
-            self.trigger = new_info.pop('trigger')
-
-        if 'next_run_time' in new_info:
-            self.next_run_time = new_info.pop('next_run_time')
-
-        #TODO: messy code.. need clean up
-        if self.trigger:
-            # timezone may have bug here
-            self.next_run_time = self.next_run_time or self.trigger.get_next_trigger_time(None)
-
-
-
-
-
-

@@ -8,7 +8,7 @@ from core.exceptions import StopRequested
 
 class ProcessPoolExecutor(BaseExecutor):
 
-    def __init__(self, max_workers, logger=None):
+    def __init__(self, max_workers, logger):
         BaseExecutor.__init__(self, logger)
         self._pool = concurrent.futures.ProcessPoolExecutor(max_workers=max_workers)
         self.log.debug('start executor..')
