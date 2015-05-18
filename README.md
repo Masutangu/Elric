@@ -5,7 +5,7 @@ A Simple Distributed Job Scheduler Based on Redis and Apscheduler.
 Features:
 - ***Master-Slave Architecture***
 - ***Distributed Job Based on Redis***
-- ***Support Cron/Data/Interval/Regular/Immediate Job***
+- ***Support Cron/Data/Interval/Immediate Job***
 
 Usage
 -----
