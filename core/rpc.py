@@ -7,7 +7,8 @@ import xmlrpclib
 
 
 class ElricRPCServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
-
+    request_queue_size = 10000
+    
     def __init__(self, *args, **kwargs):
         SimpleXMLRPCServer.__init__(self, *args, **kwargs)
         self.allow_none = True
