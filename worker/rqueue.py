@@ -101,19 +101,6 @@ class RQWorker(BaseWorker):
         """
         rpc_client_call('remove_job', job_id)
 
-    def add_queue(self, queue_keys):
-        """
-            send add job queue request to master through rpc
-            :type queue_keys: str or Iterable obj
-        """
-        if isinstance(queue_keys, six.string_types):
-            queue_keys = [queue_keys, ]
-        if not isinstance(queue_keys, Iterable):
-            raise AddQueueFailed
-        queue_keys = ['%s:%s' % (self.name, queue_key) for queue_key in queue_keys]
-        rpc_client_call('add_queue', queue_keys)
-
-
     @property
     def running(self):
         return not self._stopped
