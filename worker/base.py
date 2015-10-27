@@ -33,10 +33,6 @@ class BaseWorker(object):
         raise NotImplementedError('subclasses of BaseWorker must provide a start() method')
 
     @abstractmethod
-    def add_queue(self, queue_keys):
-        raise NotImplementedError('subclasses of BaseWorker must provide a add_queue() method')
-
-    @abstractmethod
     def stop(self):
         raise NotImplementedError('subclasses of BaseWorker must provide a stop() method')
 

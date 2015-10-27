@@ -21,6 +21,8 @@ class Job(object):
         kwargs = job_in_dict.get('kwargs', None)
         trigger = job_in_dict.get('trigger', None)
         next_run_time = job_in_dict.get('next_run_time', None)
+        filter_key = job_in_dict.get('filter_key', None)
+        filter_value = job_in_dict.get('filter_value', None)
         ref_to_func = None
         if isinstance(func, six.string_types):
             ref_to_func = func
@@ -39,6 +41,8 @@ class Job(object):
         self.id = id or uuid4().hex
         self.func = func
         self.ref_to_func = ref_to_func
+        self.filter_key = filter_key
+        self.filter_value = filter_value
 
         check_callable_args(self.func, self.args, self.kwargs)
 
@@ -53,7 +57,9 @@ class Job(object):
             'trigger': self.trigger,
             'next_run_time': self.next_run_time,
             'args': self.args,
-            'kwargs':self.kwargs
+            'kwargs':self.kwargs,
+            'filter_key': self.filter_key,
+            'filter_value': self.filter_value
         }
         return pickle.dumps(job_in_dict, pickle.HIGHEST_PROTOCOL)
 

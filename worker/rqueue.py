@@ -21,8 +21,6 @@ class RQWorker(BaseWorker):
     def __init__(self, name, listen_keys=None, worker_num=2, timezone=None):
         BaseWorker.__init__(self, name)
         self.server = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
-        self.rpc_host = RPC_HOST
-        self.rpc_port = RPC_PORT
         self.listen_keys = []
         if listen_keys:
             self.listen_keys = ['%s:%s' % (self.name, listen_key) for listen_key in listen_keys]
@@ -56,7 +54,7 @@ class RQWorker(BaseWorker):
             self.executor.execute_job(job)
 
     def submit_job(self, func, job_key, args=None, kwargs=None, trigger=None, job_id=None,
-                    replace_exist=False, **trigger_args):
+                    replace_exist=False, filter_key='', filter_value='', **trigger_args):
         """
             submit job to master through rpc
             :type func: str or callable obj or unicode
@@ -77,9 +75,11 @@ class RQWorker(BaseWorker):
             'args': args,
             'trigger': create_trigger(trigger, trigger_args) if trigger else None,
             'kwargs': kwargs,
+            'filter_key': '%s_%s' % (self.name, filter_key),
+            'filter_value': filter_value,
         }
         job = Job(**job_in_dict)
-        rpc_client_call(self.rpc_host, self.rpc_port, 'submit_job', Binary(job.serialize()),
+        rpc_client_call('submit_job', Binary(job.serialize()),
                         job_key, job.id, replace_exist)
 
     def update_job(self, job_id, job_key, next_run_time, serialized_job):
@@ -91,7 +91,7 @@ class RQWorker(BaseWorker):
             :type serialized_job: str
         """
         job_key = '%s:%s' % (self.name, job_key)
-        rpc_client_call(self.rpc_host, self.rpc_port, 'update_job', job_id, job_key,
+        rpc_client_call('update_job', job_id, job_key,
                         next_run_time, Binary(serialized_job))
 
     def remove_job(self, job_id):
@@ -99,7 +99,7 @@ class RQWorker(BaseWorker):
             send remove job request to master through rpc
             :type job_id: str
         """
-        rpc_client_call(self.rpc_host, self.rpc_port, 'remove_job', job_id)
+        rpc_client_call('remove_job', job_id)
 
     def add_queue(self, queue_keys):
         """
@@ -111,7 +111,7 @@ class RQWorker(BaseWorker):
         if not isinstance(queue_keys, Iterable):
             raise AddQueueFailed
         queue_keys = ['%s:%s' % (self.name, queue_key) for queue_key in queue_keys]
-        rpc_client_call(self.rpc_host, self.rpc_port, 'add_queue', queue_keys)
+        rpc_client_call('add_queue', queue_keys)
 
 
     @property

@@ -29,7 +29,6 @@ class BaseMaster(object):
         self.rpc_server.register_function(self.submit_job, 'submit_job')
         self.rpc_server.register_function(self.update_job, 'update_job')
         self.rpc_server.register_function(self.remove_job, 'remove_job')
-        self.rpc_server.register_function(self.add_queue, 'add_queue')
 
     @abstractmethod
     def start(self):
@@ -46,10 +45,6 @@ class BaseMaster(object):
     @abstractmethod
     def remove_job(self, job_id):
         raise NotImplementedError('subclasses of BaseMaster must provide a remove_job() method')
-
-    @abstractmethod
-    def add_queue(self, queue_keys):
-        raise NotImplementedError('subclasses of BaseMaster must provide a add_queue() method')
 
     def start_rpc_server(self, rpc_host, rpc_port):
         """

@@ -79,12 +79,15 @@ class MemoryJobStore(BaseJobStore):
             :type now: datetime.datetime
         """
         curr_timestamp = datetime_to_utc_timestamp(now)
+        due_jobs = []
         for job_id, timestamp in self.job_run_time:
             if timestamp is None or timestamp > curr_timestamp:
                 break
             job_info = self.job_info[job_id]
             if job_info['status'] == 0:
-                yield (job_id, job_info['job_key'], job_info['serialized_job'])
+                due_jobs.append((job_id, job_info['job_key'], job_info['serialized_job']))
+
+        return due_jobs
 
     def get_closest_run_time(self):
         return utc_timestamp_to_datetime(self.job_run_time[0][1]) if self.job_run_time else None

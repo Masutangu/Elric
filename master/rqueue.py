@@ -22,17 +22,13 @@ class RQMaster(BaseMaster):
     def __init__(self, timezone=None):
         BaseMaster.__init__(self)
         self.queue_list = {}
+        self.queue_lock = RLock()
         self.server = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
         self.timezone = timezone or get_localzone()
         self._event = Event()
         self._stopped = True
         self.jobstore = MemoryJobStore(self.log)
         self.jobstore_lock = RLock()
-
-    def add_queue(self, queue_keys):
-        for key in queue_keys:
-            if key not in self.queue_list.keys():
-                self.queue_list[key] = RedisJobQueue(self.server, key)
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):
         """
@@ -98,7 +94,12 @@ class RQMaster(BaseMaster):
             :type key: str
             :type job: str or xmlrpc.Binary
         """
-        self.queue_list[key].enqueue(job)
+        with self.queue_lock:
+            try:
+                self.queue_list[key].enqueue(job)
+            except KeyError:
+                self.queue_list[key] = RedisJobQueue(self.server, key)
+                self.queue_list[key].enqueue(job)
 
     def start(self):
         """
