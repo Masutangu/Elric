@@ -2,11 +2,16 @@
 from __future__ import (absolute_import, unicode_literals)
 
 from master.rqueue import RQMaster
-from dupefilter.redisfilter import RedisFilter
+from dupefilter.memoryfilter import MemoryFilter
 from core.exceptions import JobAlreadyExist
 from xmlrpclib import Binary
 from core.job import Job
 from threading import RLock
+import threading
+import cPickle
+from time import sleep
+import copy
+import os
 
 
 class Spider(RQMaster):
@@ -15,6 +20,18 @@ class Spider(RQMaster):
         self.filter_list = {}
         self.filter_lock = RLock()
         self.rpc_server.register_function(self.finish_job, 'finish_job')
+        self.read_filter_file()
+        self.start_serialize_data()
+
+    def read_filter_file(self):
+        try:
+            f = open("elric_filter.dump", "rb")
+            self.filter_list = cPickle.load(f)
+            f.close()
+            for key in self.filter_list:
+                print "filter %s %s" % (key, self.filter_list[key].memorey_filter)
+        except IOError as e:
+            self.log.warn("open elric_filter.dump failed, exception=%s" % e)
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):
         def exist(key, value):
@@ -22,7 +39,7 @@ class Spider(RQMaster):
                 try:
                     return self.filter_list[key].exist(value)
                 except KeyError:
-                    self.filter_list[key] = RedisFilter(self.server, "%s:dupefilter" % key)
+                    self.filter_list[key] = MemoryFilter()
                     return self.filter_list[key].exist(value)
 
         self.log.debug("client call submit job %s" % job_id)
@@ -61,5 +78,31 @@ class Spider(RQMaster):
                 try:
                     self.filter_list[key].add(value)
                 except KeyError:
-                    self.filter_list[key] = RedisFilter(self.server, "%s:dupefilter" % key)
+                    self.filter_list[key] = MemoryFilter()
                     return self.filter_list[key].add(value)
+
+    def serialize_data(self):
+        """
+            dump filter_list to file every five minutes
+        """
+        while True:
+            self.log.debug("start to serialize data..")
+            f = open("elric_filter.dump.bk", "wb")
+            current_filter_list = copy.deepcopy(self.filter_list)
+            cPickle.dump(current_filter_list, f)
+            f.close()
+            os.rename("elric_filter.dump.bk", "elric_filter.dump")
+            sleep(60)
+
+    def start_serialize_data(self):
+        """
+            Start filter data serialization thread
+
+            :type rpc_host: String
+            :type rpc_port: Integer
+        """
+        self.log.debug('start serialize_data thread...')
+        thd = threading.Thread(target=self.serialize_data)
+        thd.setDaemon(True)
+        thd.start()
+

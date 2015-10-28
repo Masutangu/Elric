@@ -25,10 +25,10 @@ class MemoryJobStore(BaseJobStore):
         next_timestamp = datetime_to_utc_timestamp(next_run_time)
         index = self._get_job_index(job_id, next_timestamp)
         self.job_run_time.insert(index, (job_id, next_timestamp))
-        self.job_info[job_id] = {'serialized_job': serialized_job, 'job_key': job_key, 'status': 0,
+        self.job_info[job_id] = {'serialized_job': serialized_job, 'job_key': job_key,
                                  'next_timestamp': next_timestamp}
 
-    def update_job(self, job_id, job_key=None, next_run_time=None, serialized_job=None, status=None):
+    def update_job(self, job_id, job_key=None, next_run_time=None, serialized_job=None):
         """
             update job
             :type job_id: str
@@ -46,8 +46,6 @@ class MemoryJobStore(BaseJobStore):
             job_info['job_key'] = job_key
         if serialized_job is not None:
             job_info['serialized_job'] = serialized_job
-        if status is not None:
-            job_info['status'] = status
 
         new_timestamp = datetime_to_utc_timestamp(next_run_time)
         old_timestamp = job_info['next_timestamp']
@@ -84,8 +82,7 @@ class MemoryJobStore(BaseJobStore):
             if timestamp is None or timestamp > curr_timestamp:
                 break
             job_info = self.job_info[job_id]
-            if job_info['status'] == 0:
-                due_jobs.append((job_id, job_info['job_key'], job_info['serialized_job']))
+            due_jobs.append((job_id, job_info['job_key'], job_info['serialized_job']))
 
         return due_jobs
 

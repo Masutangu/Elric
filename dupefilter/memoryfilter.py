@@ -4,11 +4,10 @@ from __future__ import (absolute_import, unicode_literals)
 from dupefilter.base import BaseFilter
 
 
-class RedisFilter(BaseFilter):
+class MemoryFilter(BaseFilter):
 
-    def __init__(self, server, key):
-        self.server = server
-        self.key = key
+    def __init__(self):
+        self.memorey_filter = set()
 
     def exist(self, value):
         """
@@ -16,11 +15,11 @@ class RedisFilter(BaseFilter):
             if exist return 1
             if not exist return 0
         """
-        return self.server.sismember(self.key, value)
+        return value in self.memorey_filter
 
     def add(self, value):
-        self.server.sadd(self.key, value)
+        self.memorey_filter.add(value)
 
     def clear(self):
         """Clears fingerprints data"""
-        self.server.delete(self.key)
+        self.memorey_filter.clear()
