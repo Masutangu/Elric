@@ -7,8 +7,8 @@ from core.exceptions import JobAlreadyExist, JobDoesNotExist
 
 
 class MemoryJobStore(BaseJobStore):
-    def __init__(self, logger):
-        super(MemoryJobStore, self).__init__(logger)
+    def __init__(self, context):
+        BaseJobStore.__init__(self, context)
         self.job_info = {}
         self.job_run_time = []
 
@@ -35,10 +35,9 @@ class MemoryJobStore(BaseJobStore):
             :type job_key: str
             :type next_run_time: datetime.datetime
             :type serialized_job: str or xmlrpclib.Binary
-            :type status: int
         """
-        self.log.debug("update job %s next run time=%s" % (job_id, next_run_time))
-        self.log.debug("job_run_time = %s" % self.job_run_time)
+        self.context.log.debug("update job %s next run time=%s" % (job_id, next_run_time))
+        self.context.log.debug("job_run_time = %s" % self.job_run_time)
         if job_id not in self.job_info:
             raise JobDoesNotExist
         job_info = self.job_info[job_id]
@@ -55,10 +54,10 @@ class MemoryJobStore(BaseJobStore):
             new_index = self._get_job_index(job_id, new_timestamp)
             self.job_run_time.insert(new_index, (job_id, new_timestamp))
 
-        self.log.debug("job_run_time = %s" % self.job_run_time)
+        self.context.log.debug("job_run_time = %s" % self.job_run_time)
 
     def remove_job(self, job_id):
-        self.log.debug("before remove job run time = %s" % self.job_run_time)
+        self.context.log.debug("before remove job run time = %s" % self.job_run_time)
         """
             remove job
             :type job_id: str
@@ -69,7 +68,7 @@ class MemoryJobStore(BaseJobStore):
         index = self._get_job_index(job_id, job_info['next_timestamp'])
         del self.job_info[job_id]
         del self.job_run_time[index]
-        self.log.debug("after remove job run time = %s" % self.job_run_time)
+        self.context.log.debug("after remove job run time = %s" % self.job_run_time)
 
     def get_due_jobs(self, now):
         """
