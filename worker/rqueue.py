@@ -3,7 +3,7 @@ from __future__ import (absolute_import, unicode_literals)
 
 import redis
 from core.job import Job
-from core.exceptions import AlreadyRunningException, AddQueueFailed
+from core.exceptions import AlreadyRunningException, log_exception
 from xmlrpclib import Binary
 from worker.base import BaseWorker
 from jobqueue.rqueue import RedisJobQueue
@@ -11,50 +11,41 @@ from executor.pool import ProcessPoolExecutor
 from tzlocal import get_localzone
 from trigger.tool import create_trigger
 from core.rpc import rpc_client_call
-import six
-from collections import Iterable
-from settings import REDIS_HOST, REDIS_PORT, RPC_HOST, RPC_PORT
+from settings import REDIS_HOST, REDIS_PORT
+import time
 
 
 class RQWorker(BaseWorker):
-
     def __init__(self, name, listen_keys=None, worker_num=2, timezone=None):
         BaseWorker.__init__(self, name)
-        self.server = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+        self.job_queue = RedisJobQueue(redis.Redis(host=REDIS_HOST, port=REDIS_PORT), self)
         self.listen_keys = []
         if listen_keys:
             self.listen_keys = ['%s:%s' % (self.name, listen_key) for listen_key in listen_keys]
         self.timezone = timezone or get_localzone()
-        self.executor = ProcessPoolExecutor(worker_num, self.log)
+        self.executor = ProcessPoolExecutor(worker_num, self)
         self._stopped = True
 
-    # def _install_signal_handlers(self):
-    #     """
-    #         Installs signal handlers for handling SIGINT and SIGTERM gracefully.
-    #         quote from python-rq
-    #     """
-    #     def request_stop(signum, frame):
-    #         self.log.debug('Got signal %s.' % signal_name(signum))
-    #         raise StopRequested()
-    #
-    #     signal.signal(signal.SIGINT, request_stop)
-    #     signal.signal(signal.SIGTERM, request_stop)
-
     def start(self):
-        #self._install_signal_handlers()
         if self.running:
             raise AlreadyRunningException
 
         self._stopped = False
         self.log.debug('elric worker running..')
         while self.running:
-            key, serialized_job = RedisJobQueue.dequeue_any(self.server, self.listen_keys)
-            job = Job.deserialize(serialized_job)
-            self.log.debug('get job id=[%s] func=[%s]from key %s' % (job.id, job.func, key))
-            self.executor.execute_job(job)
+            try:
+                key, serialized_job = self.job_queue.dequeue_any(self.listen_keys)
+                job = Job.deserialize(serialized_job)
+                self.log.debug('get job id=[%s] func=[%s]from key %s' % (job.id, job.func, key))
+                self.executor.execute_job(job)
+            except TypeError as e:
+                self.log.error(e)
+                time.sleep(60)
+                continue
 
+    @log_exception
     def submit_job(self, func, job_key, args=None, kwargs=None, trigger=None, job_id=None,
-                    replace_exist=False, filter_key='', filter_value='', **trigger_args):
+                   replace_exist=False, filter_key='', filter_value='', **trigger_args):
         """
             submit job to master through rpc
             :type func: str or callable obj or unicode
@@ -79,9 +70,9 @@ class RQWorker(BaseWorker):
             'filter_value': filter_value,
         }
         job = Job(**job_in_dict)
-        rpc_client_call('submit_job', Binary(job.serialize()),
-                        job_key, job.id, replace_exist)
+        rpc_client_call('submit_job', Binary(job.serialize()), job_key, job.id, replace_exist)
 
+    @log_exception
     def update_job(self, job_id, job_key, next_run_time, serialized_job):
         """
             send update job request to master through rpc
@@ -94,6 +85,7 @@ class RQWorker(BaseWorker):
         rpc_client_call('update_job', job_id, job_key,
                         next_run_time, Binary(serialized_job))
 
+    @log_exception
     def remove_job(self, job_id):
         """
             send remove job request to master through rpc
@@ -109,11 +101,3 @@ class RQWorker(BaseWorker):
         self.log.debug('Worker is quiting')
         self._stopped = True
         self.executor.shutdown()
-
-
-
-
-
-
-
-

@@ -6,29 +6,20 @@ from core.rpc import ElricRPCServer
 import threading
 from settings import RPC_HOST, RPC_PORT
 import logging
-import logging.handlers
-
-
-def setup_logger():
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    return logger
+from core.log import init_logging_config
 
 
 class BaseMaster(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
-        self.log = setup_logger()
+        init_logging_config()
+        self.log = logging.getLogger('elric.master')
         self.rpc_server = self.start_rpc_server(RPC_HOST, RPC_PORT)
         self.rpc_server.register_function(self.submit_job, 'submit_job')
         self.rpc_server.register_function(self.update_job, 'update_job')
         self.rpc_server.register_function(self.remove_job, 'remove_job')
+
 
     @abstractmethod
     def start(self):

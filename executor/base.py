@@ -7,8 +7,8 @@ from abc import ABCMeta, abstractmethod
 class BaseExecutor(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, logger):
-        self.log = logger
+    def __init__(self, context):
+        self.context = context
 
     @abstractmethod
     def execute_job(self, job):

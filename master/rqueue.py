@@ -16,7 +16,6 @@ from settings import REDIS_HOST, REDIS_PORT
 
 
 class RQMaster(BaseMaster):
-
     MAX_WAIT_TIME = 4294967  # Maximum value accepted by Event.wait() on Windows
 
     def __init__(self, timezone=None):
@@ -27,7 +26,7 @@ class RQMaster(BaseMaster):
         self.timezone = timezone or get_localzone()
         self._event = Event()
         self._stopped = True
-        self.jobstore = MemoryJobStore(self.log)
+        self.jobstore = MemoryJobStore(self)
         self.jobstore_lock = RLock()
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):
@@ -73,7 +72,7 @@ class RQMaster(BaseMaster):
         with self.jobstore_lock:
             try:
                 self.jobstore.update_job(job_id, job_key=job_key, next_run_time=next_run_time,
-                                     serialized_job=serialized_job)
+                                         serialized_job=serialized_job)
             except JobDoesNotExist:
                 self.log.error('update job error. job id %s does not exist' % job_id)
 
@@ -96,10 +95,10 @@ class RQMaster(BaseMaster):
         """
         with self.queue_lock:
             try:
-                self.queue_list[key].enqueue(job)
+                self.queue_list[key].enqueue(key, job)
             except KeyError:
-                self.queue_list[key] = RedisJobQueue(self.server, key)
-                self.queue_list[key].enqueue(job)
+                self.queue_list[key] = RedisJobQueue(self.server, self)
+                self.queue_list[key].enqueue(key, job)
 
     def start(self):
         """
@@ -146,6 +145,3 @@ class RQMaster(BaseMaster):
     @property
     def running(self):
         return not self._stopped
-
-
-

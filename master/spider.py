@@ -28,8 +28,6 @@ class Spider(RQMaster):
             f = open("elric_filter.dump", "rb")
             self.filter_list = cPickle.load(f)
             f.close()
-            for key in self.filter_list:
-                print "filter %s %s" % (key, self.filter_list[key].memorey_filter)
         except IOError as e:
             self.log.warn("open elric_filter.dump failed, exception=%s" % e)
 
@@ -42,7 +40,7 @@ class Spider(RQMaster):
                     self.filter_list[key] = MemoryFilter()
                     return self.filter_list[key].exist(value)
 
-        self.log.debug("client call submit job %s" % job_id)
+        self.log.debug("client call submit job [%s]" % job_id)
 
         if isinstance(serialized_job, Binary):
             serialized_job = serialized_job.data
@@ -53,7 +51,7 @@ class Spider(RQMaster):
 
         if filter_key and filter_value:
             if exist(filter_key, filter_value):
-                self.log.debug("%s has been filter..." % filter_value)
+                self.log.debug("job [%s] has been filter..." % job_id)
                 return False
 
         if not job_in_dict['trigger']:
@@ -66,7 +64,7 @@ class Spider(RQMaster):
                     if replace_exist:
                         self.jobstore.update_job(job_id, job_key, job_in_dict['next_run_time'], serialized_job)
                     else:
-                        self.log.warn('job %s already exist' % job_id)
+                        self.log.warn('job [%s] already exist' % job_id)
             self.wake_up()
 
         return True
@@ -97,12 +95,8 @@ class Spider(RQMaster):
     def start_serialize_data(self):
         """
             Start filter data serialization thread
-
-            :type rpc_host: String
-            :type rpc_port: Integer
         """
         self.log.debug('start serialize_data thread...')
         thd = threading.Thread(target=self.serialize_data)
         thd.setDaemon(True)
         thd.start()
-

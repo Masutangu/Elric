@@ -11,18 +11,23 @@ class JobQueue(object):
     """
     __metaclass__ = ABCMeta
 
+    def __init__(self, context):
+        self.context = context
+
     @abstractmethod
-    def __len__(self):
+    def __len__(self, key):
         raise NotImplementedError
 
     @abstractmethod
-    def enqueue(self, job):
+    def enqueue(self, key, value):
         raise NotImplementedError
 
     @abstractmethod
-    def dequeue(self, timeout=0):
+    def dequeue(self, key, timeout=0):
         raise NotImplementedError
 
     @abstractmethod
-    def clear(self):
+    def clear(self, key):
         raise NotImplementedError
+
+

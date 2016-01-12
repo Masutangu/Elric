@@ -2,33 +2,37 @@
 from __future__ import (absolute_import, unicode_literals)
 
 from jobqueue.base import JobQueue
+from core.exceptions import log_exception
 
 
 class RedisJobQueue(JobQueue):
-
-    def __init__(self, server, key):
+    def __init__(self, server, context):
+        JobQueue.__init__(self, context)
         self.server = server
-        self.key = key
 
-    def __len__(self):
-        return self.server.llen(self.key)
+    @log_exception
+    def __len__(self, key):
+        return self.server.llen(key)
 
-    def enqueue(self, job):
-        self.server.lpush(self.key, job)
+    @log_exception
+    def enqueue(self, key, value):
+        self.server.lpush(key, value)
 
-    def dequeue(self, timeout=0):
-        data = self.server.brpop(self.key, timeout)
+    @log_exception
+    def dequeue(self, key, timeout=0):
+        data = self.server.brpop(key, timeout)
         if isinstance(data, tuple):
             data = data[1]
         if data:
             return data
 
-    @classmethod
-    def dequeue_any(cls, server, queue_keys, timeout=0):
-        result = server.brpop(queue_keys, timeout)
+    @log_exception
+    def dequeue_any(self, queue_keys, timeout=0):
+        result = self.server.brpop(queue_keys, timeout)
         if result:
             queue_key, data = result
             return queue_key, data
 
-    def clear(self):
-        self.server.delete(self.key)
+    @log_exception
+    def clear(self, key):
+        self.server.delete(key)
