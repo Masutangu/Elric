@@ -10,9 +10,10 @@ from jobqueue.rqueue import RedisJobQueue
 from executor.pool import ProcessPoolExecutor
 from tzlocal import get_localzone
 from trigger.tool import create_trigger
-from core.rpc import rpc_client_call
+from core.rpc import ElricRPCClient
 from settings import REDIS_HOST, REDIS_PORT
 import time
+from multiprocessing import Queue
 
 
 class RQWorker(BaseWorker):
@@ -23,8 +24,10 @@ class RQWorker(BaseWorker):
         if listen_keys:
             self.listen_keys = ['%s:%s' % (self.name, listen_key) for listen_key in listen_keys]
         self.timezone = timezone or get_localzone()
+        self.internal_job_queue = Queue(maxsize=worker_num)
         self.executor = ProcessPoolExecutor(worker_num, self)
         self._stopped = True
+        self.rpc_client = ElricRPCClient(self)
 
     def start(self):
         if self.running:
@@ -34,6 +37,8 @@ class RQWorker(BaseWorker):
         self.log.debug('elric worker running..')
         while self.running:
             try:
+                # grab job from job queue only if internal_job_queue has space
+                self.internal_job_queue.put("#", True)
                 key, serialized_job = self.job_queue.dequeue_any(self.listen_keys)
                 job = Job.deserialize(serialized_job)
                 self.log.debug('get job id=[%s] func=[%s]from key %s' % (job.id, job.func, key))
@@ -43,7 +48,6 @@ class RQWorker(BaseWorker):
                 time.sleep(60)
                 continue
 
-    @log_exception
     def submit_job(self, func, job_key, args=None, kwargs=None, trigger=None, job_id=None,
                    replace_exist=False, filter_key='', filter_value='', **trigger_args):
         """
@@ -70,9 +74,8 @@ class RQWorker(BaseWorker):
             'filter_value': filter_value,
         }
         job = Job(**job_in_dict)
-        rpc_client_call('submit_job', Binary(job.serialize()), job_key, job.id, replace_exist)
+        self.rpc_client.call('submit_job', Binary(job.serialize()), job_key, job.id, replace_exist)
 
-    @log_exception
     def update_job(self, job_id, job_key, next_run_time, serialized_job):
         """
             send update job request to master through rpc
@@ -82,16 +85,15 @@ class RQWorker(BaseWorker):
             :type serialized_job: str
         """
         job_key = '%s:%s' % (self.name, job_key)
-        rpc_client_call('update_job', job_id, job_key,
+        self.rpc_client.call('update_job', job_id, job_key,
                         next_run_time, Binary(serialized_job))
 
-    @log_exception
     def remove_job(self, job_id):
         """
             send remove job request to master through rpc
             :type job_id: str
         """
-        rpc_client_call('remove_job', job_id)
+        self.rpc_client.call('remove_job', job_id)
 
     @property
     def running(self):
