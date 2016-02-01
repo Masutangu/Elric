@@ -19,11 +19,13 @@ class ProcessPoolExecutor(BaseExecutor):
                 self.context.log.error('job [%s] occurs error. exception info [%s]' % (job.id, f.exception_info()))
             else:
                 self.context.log.debug('job [%s] finish, result=[%s]' % (job.id, f.result()))
-                if job.filter_key and job.filter_value:
-                    self.context.rpc_client.call('finish_job', job.id, job.filter_key, job.filter_value)
+
+            self.context.rpc_client.call('finish_job', job.id, False if f.exception() else True,
+                                         str(f.exception_info()) if f.exception() else '',
+                                         job.filter_key if job.filter_key else '',
+                                         job.filter_value if job.filter_value else '')
         future = self._pool.submit(job.func, *job.args, **job.kwargs)
         future.add_done_callback(job_done)
-
 
     def shutdown(self, wait=True):
         self._pool.shutdown(wait)

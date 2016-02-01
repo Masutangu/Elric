@@ -4,6 +4,9 @@ from __future__ import absolute_import
 from jobstore.base import BaseJobStore
 from core.utils import datetime_to_utc_timestamp, utc_timestamp_to_datetime
 from core.exceptions import JobAlreadyExist, JobDoesNotExist
+from collections import deque
+from settings import MAXIMUN_EXECUTE_RECORDS
+import datetime
 
 
 class MemoryJobStore(BaseJobStore):
@@ -26,7 +29,8 @@ class MemoryJobStore(BaseJobStore):
         index = self._get_job_index(job_id, next_timestamp)
         self.job_run_time.insert(index, (job_id, next_timestamp))
         self.job_info[job_id] = {'serialized_job': serialized_job, 'job_key': job_key,
-                                 'next_timestamp': next_timestamp}
+                                 'next_timestamp': next_timestamp,
+                                 'execute_records': None}
 
     def update_job(self, job_id, job_key=None, next_run_time=None, serialized_job=None):
         """
@@ -36,8 +40,6 @@ class MemoryJobStore(BaseJobStore):
             :type next_run_time: datetime.datetime
             :type serialized_job: str or xmlrpclib.Binary
         """
-        self.context.log.debug("update job %s next run time=%s" % (job_id, next_run_time))
-        self.context.log.debug("job_run_time = %s" % self.job_run_time)
         if job_id not in self.job_info:
             raise JobDoesNotExist
         job_info = self.job_info[job_id]
@@ -57,7 +59,6 @@ class MemoryJobStore(BaseJobStore):
         self.context.log.debug("job_run_time = %s" % self.job_run_time)
 
     def remove_job(self, job_id):
-        self.context.log.debug("before remove job run time = %s" % self.job_run_time)
         """
             remove job
             :type job_id: str
@@ -68,7 +69,20 @@ class MemoryJobStore(BaseJobStore):
         index = self._get_job_index(job_id, job_info['next_timestamp'])
         del self.job_info[job_id]
         del self.job_run_time[index]
-        self.context.log.debug("after remove job run time = %s" % self.job_run_time)
+
+    def update_execute_record(self, job_id, is_success, details):
+        """
+            update job's execute record
+            :type job_id: str
+            :type is_success: bool
+            :type details: str
+        """
+        if job_id not in self.job_info:
+            raise JobDoesNotExist
+        job_info = self.job_info[job_id]
+        if not job_info['execute_records']:
+            job_info['execute_records'] = deque(maxlen=MAXIMUN_EXECUTE_RECORDS)
+        job_info['execute_records'].append((is_success, details, datetime.datetime.now()))
 
     def get_due_jobs(self, now):
         """

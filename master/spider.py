@@ -69,15 +69,24 @@ class Spider(RQMaster):
 
         return True
 
-    def finish_job(self, job_id, key, value):
+    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+        """
+            Receive finish_job rpc request from worker.
+            :type job_id str
+            :type is_success bool
+            :type details str
+            :type filter_key str or int
+            :type filter_value str or int
+        """
         self.log.debug("job_id [%s] finish" % job_id)
-        if key and value:
+        RQMaster.finish_job(self, job_id, is_success, details, filter_key, filter_value)
+        if is_success and filter_key and filter_value:
             with self.filter_lock:
                 try:
-                    self.filter_list[key].add(value)
+                    self.filter_list[filter_key].add(filter_value)
                 except KeyError:
-                    self.filter_list[key] = MemoryFilter()
-                    return self.filter_list[key].add(value)
+                    self.filter_list[filter_key] = MemoryFilter()
+                    return self.filter_list[filter_key].add(filter_value)
 
     def serialize_data(self):
         """
@@ -90,7 +99,9 @@ class Spider(RQMaster):
             cPickle.dump(current_filter_list, f)
             f.close()
             os.rename("elric_filter.dump.bk", "elric_filter.dump")
-            sleep(60)
+
+            self.log.debug(self.jobstore.job_info)
+            sleep(20)
 
     def start_serialize_data(self):
         """

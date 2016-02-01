@@ -23,6 +23,10 @@ class BaseJobStore(object):
         raise NotImplementedError('subclasses of BaseJobStore must provide a remove_job() method')
 
     @abstractmethod
+    def update_execute_record(self, job_id, is_success, details):
+        raise NotImplementedError('subclasses of BaseJobStore must provide a update_execute_record() method')
+
+    @abstractmethod
     def get_due_jobs(self, now):
         raise NotImplementedError('subclasses of BaseJobStore must provide a get_due_jobs() method')
 

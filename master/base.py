@@ -37,6 +37,10 @@ class BaseMaster(object):
     def remove_job(self, job_id):
         raise NotImplementedError('subclasses of BaseMaster must provide a remove_job() method')
 
+    @abstractmethod
+    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+        raise NotImplementedError('subclasses of BaseMaster must provide a finish_job() method')
+
     def start_rpc_server(self, rpc_host, rpc_port):
         """
             Start rpc server

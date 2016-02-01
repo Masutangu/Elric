@@ -7,6 +7,8 @@ RPC_PORT = 8000
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 
+MAXIMUN_EXECUTE_RECORDS = 3
+
 SETTING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,

@@ -87,6 +87,21 @@ class RQMaster(BaseMaster):
             except JobDoesNotExist:
                 self.log.error('remove job error. job id %s does not exist' % job_id)
 
+    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+        """
+            Receive finish_job rpc request from worker.
+            :type job_id str
+            :type is_success bool
+            :type details str
+            :type filter_key str or int
+            :type filter_value str or int
+        """
+        with self.jobstore_lock:
+            try:
+                self.jobstore.update_execute_record(job_id, is_success, details)
+            except JobDoesNotExist:
+                self.log.error('update job execute record error. job id %s does not exist' % job_id)
+
     def _enqueue_job(self, key, job):
         """
             enqueue job into redis queue
