@@ -21,7 +21,6 @@ class BaseMaster(object):
         self.rpc_server.register_function(self.remove_job, 'remove_job')
         self.rpc_server.register_function(self.finish_job, 'finish_job')
 
-
     @abstractmethod
     def start(self):
         raise NotImplementedError('subclasses of BaseMaster must provide a start() method')

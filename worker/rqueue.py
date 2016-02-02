@@ -19,7 +19,7 @@ from multiprocessing import Queue
 class RQWorker(BaseWorker):
     def __init__(self, name, listen_keys=None, worker_num=2, timezone=None):
         BaseWorker.__init__(self, name)
-        self.job_queue = RedisJobQueue(redis.Redis(host=REDIS_HOST, port=REDIS_PORT), self)
+        self.jobqueue = RedisJobQueue(REDIS_HOST, REDIS_PORT, self)
         self.listen_keys = []
         if listen_keys:
             self.listen_keys = ['%s:%s' % (self.name, listen_key) for listen_key in listen_keys]
@@ -39,7 +39,7 @@ class RQWorker(BaseWorker):
             try:
                 # grab job from job queue only if internal_job_queue has space
                 self.internal_job_queue.put("#", True)
-                key, serialized_job = self.job_queue.dequeue_any(self.listen_keys)
+                key, serialized_job = self.jobqueue.dequeue_any(self.listen_keys)
                 job = Job.deserialize(serialized_job)
                 self.log.debug('get job id=[%s] func=[%s]from key %s' % (job.id, job.func, key))
                 self.executor.execute_job(job)
