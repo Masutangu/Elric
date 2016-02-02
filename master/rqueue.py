@@ -6,6 +6,7 @@ from master.base import BaseMaster
 from jobqueue.rqueue import RedisJobQueue
 from core.exceptions import JobAlreadyExist, JobDoesNotExist, AlreadyRunningException
 from jobstore.memory import MemoryJobStore
+from jobstore.mongodb import MongoJobStore
 from datetime import datetime
 from tzlocal import get_localzone
 from core.job import Job
@@ -26,7 +27,8 @@ class RQMaster(BaseMaster):
         self.timezone = timezone or get_localzone()
         self._event = Event()
         self._stopped = True
-        self.jobstore = MemoryJobStore(self)
+        self.jobstore = MongoJobStore(self)
+        #self.jobstore = MemoryJobStore(self)
         self.jobstore_lock = RLock()
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):
@@ -50,11 +52,11 @@ class RQMaster(BaseMaster):
             with self.jobstore_lock:
                 try:
                     self.jobstore.add_job(job_id, job_key, job_in_dict['next_run_time'], serialized_job)
-                except JobAlreadyExist:
+                except JobAlreadyExist as e:
                     if replace_exist:
                         self.jobstore.update_job(job_id, job_key, job_in_dict['next_run_time'], serialized_job)
                     else:
-                        self.log.warning('submit job error. job id%s already exist' % job_id)
+                        self.log.error(e)
             # wake up when new job has store into job store
             self.wake_up()
 
@@ -73,8 +75,8 @@ class RQMaster(BaseMaster):
             try:
                 self.jobstore.update_job(job_id, job_key=job_key, next_run_time=next_run_time,
                                          serialized_job=serialized_job)
-            except JobDoesNotExist:
-                self.log.error('update job error. job id %s does not exist' % job_id)
+            except JobDoesNotExist as e:
+                self.log.error(e)
 
     def remove_job(self, job_id):
         """
@@ -97,10 +99,7 @@ class RQMaster(BaseMaster):
             :type filter_value str or int
         """
         with self.jobstore_lock:
-            try:
-                self.jobstore.update_execute_record(job_id, is_success, details)
-            except JobDoesNotExist:
-                self.log.error('update job execute record error. job id %s does not exist' % job_id)
+            self.jobstore.save_execute_record(job_id, is_success, details)
 
     def _enqueue_job(self, key, job):
         """

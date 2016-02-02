@@ -99,8 +99,6 @@ class Spider(RQMaster):
             cPickle.dump(current_filter_list, f)
             f.close()
             os.rename("elric_filter.dump.bk", "elric_filter.dump")
-
-            self.log.debug(self.jobstore.job_info)
             sleep(20)
 
     def start_serialize_data(self):
