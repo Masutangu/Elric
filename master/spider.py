@@ -19,7 +19,6 @@ class Spider(RQMaster):
         RQMaster.__init__(self, timezone)
         self.filter_list = {}
         self.filter_lock = RLock()
-        self.rpc_server.register_function(self.finish_job, 'finish_job')
         self.read_filter_file()
         self.start_serialize_data()
 

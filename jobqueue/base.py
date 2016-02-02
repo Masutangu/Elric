@@ -27,6 +27,10 @@ class JobQueue(object):
         raise NotImplementedError
 
     @abstractmethod
+    def dequeue_any(self, queue_keys, timeout=0):
+        raise NotImplementedError
+
+    @abstractmethod
     def clear(self, key):
         raise NotImplementedError
 

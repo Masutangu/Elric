@@ -19,6 +19,7 @@ class BaseMaster(object):
         self.rpc_server.register_function(self.submit_job, 'submit_job')
         self.rpc_server.register_function(self.update_job, 'update_job')
         self.rpc_server.register_function(self.remove_job, 'remove_job')
+        self.rpc_server.register_function(self.finish_job, 'finish_job')
 
 
     @abstractmethod

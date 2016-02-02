@@ -29,7 +29,6 @@ def test_cron_job():
 
 if __name__ == '__main__':
     rq_worker = RQWorker(name='test', listen_keys=['job1', 'job2'])
-    rq_worker.add_queue(['job1', 'job2'])
     rq_worker.submit_job(test_date_job, 'job1', trigger='date', run_date='2015-05-17 21:13:30')
     rq_worker.submit_job(wapper_job, 'job1', trigger='interval', seconds=30)
     rq_worker.submit_job(test_job, 'job2', trigger='interval', seconds=8, kwargs={'language': 'python'})

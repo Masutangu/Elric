@@ -2,7 +2,7 @@
 from __future__ import (absolute_import, unicode_literals)
 
 from jobqueue.base import JobQueue
-from core.exceptions import log_exception
+from core.exceptions import WrongType
 
 
 class RedisJobQueue(JobQueue):
@@ -24,6 +24,8 @@ class RedisJobQueue(JobQueue):
             return data
 
     def dequeue_any(self, queue_keys, timeout=0):
+        if not isinstance(queue_keys, (tuple, list)):
+            raise WrongType('queue_keys: [%s] must be tuple or list' % queue_keys)
         result = self.server.brpop(queue_keys, timeout)
         if result:
             queue_key, data = result
