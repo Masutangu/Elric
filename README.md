@@ -36,8 +36,6 @@ Create a worker instace, specify worker's name and listening keys. Submit job an
 ```python
 # worker will only receive job from listen_keys that have been provided here
 rq_worker = RQWorker(name='test', listen_keys='job1') 
-# create a job queue using add_queue() method. master will use `name`:`queue_key` as the final job key
-rq_worker.add_queue('job1')
 # submit job to master
 rq_worker.submit_job(test_job, 'job1', kwargs={'language': 'python'})
 # start worker, then worker will receive and execute job from master by listening job queue on listen keys you provided
