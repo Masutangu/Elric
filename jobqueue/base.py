@@ -31,6 +31,10 @@ class JobQueue(object):
         raise NotImplementedError
 
     @abstractmethod
+    def is_full(self, key):
+        raise NotImplementedError
+
+    @abstractmethod
     def clear(self, key):
         raise NotImplementedError
 

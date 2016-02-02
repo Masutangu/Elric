@@ -4,6 +4,7 @@ from __future__ import (absolute_import, unicode_literals)
 from jobqueue.base import JobQueue
 from core.exceptions import WrongType
 import redis
+from settings import JOB_QUEUE_MAX_LENGTH
 
 
 class RedisJobQueue(JobQueue):
@@ -31,6 +32,9 @@ class RedisJobQueue(JobQueue):
         if result:
             queue_key, data = result
             return queue_key, data
+
+    def is_full(self, key):
+        return self.server.llen(key) >= JOB_QUEUE_MAX_LENGTH
 
     def clear(self, key):
         self.server.delete(key)

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, unicode_literals)
 
-import redis
 from master.base import BaseMaster
 from jobqueue.rqueue import RedisJobQueue
 from core.exceptions import JobAlreadyExist, JobDoesNotExist, AlreadyRunningException
@@ -13,7 +12,10 @@ from core.job import Job
 from core.utils import timedelta_seconds
 from threading import Event, RLock
 from xmlrpclib import Binary
-from settings import REDIS_HOST, REDIS_PORT
+from settings import REDIS_HOST, REDIS_PORT, JOB_MAX_BUFFER_TIME
+from multiprocessing import Queue
+import threading
+import time
 
 
 class RQMaster(BaseMaster):
@@ -22,12 +24,14 @@ class RQMaster(BaseMaster):
     def __init__(self, timezone=None):
         BaseMaster.__init__(self)
         self.jobqueue = RedisJobQueue(REDIS_HOST, REDIS_PORT, self)
+        self.jobqueue_lock = RLock()
         self.timezone = timezone or get_localzone()
         self._event = Event()
         self._stopped = True
         self.jobstore = MongoJobStore(self)
         #self.jobstore = MemoryJobStore(self)
         self.jobstore_lock = RLock()
+        self._internal_buffer_queues = {}
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):
         """
@@ -99,13 +103,27 @@ class RQMaster(BaseMaster):
         with self.jobstore_lock:
             self.jobstore.save_execute_record(job_id, is_success, details)
 
+    def _enqueue_buffer_queue(self, key, job):
+        self.log.debug("job queue [%s] is full, put job into buffer queue" % key)
+        try:
+            self._internal_buffer_queues[key].put((job, datetime.now()))
+        except KeyError:
+            self._internal_buffer_queues[key] = Queue()
+            self._internal_buffer_queues[key].put((job, datetime.now()))
+            self.start_process_buffer_job(key)
+
     def _enqueue_job(self, key, job):
         """
             enqueue job into redis queue
             :type key: str
             :type job: str or xmlrpc.Binary
         """
-        self.jobqueue.enqueue(key, job)
+        with self.jobqueue_lock:
+            # check whether job queue is full
+            if not self.jobqueue.is_full(key):
+                self.jobqueue.enqueue(key, job)
+                return
+        self._enqueue_buffer_queue(key, job)
 
     def start(self):
         """
@@ -152,3 +170,31 @@ class RQMaster(BaseMaster):
     @property
     def running(self):
         return not self._stopped
+
+    def start_process_buffer_job(self, job_key):
+        """
+            Start filter data serialization thread
+        """
+        self.log.debug('start process buffer job... job key=[%s]' % job_key)
+        thd = threading.Thread(target=self.process_buffer_job, args=(job_key, ))
+        thd.setDaemon(True)
+        thd.start()
+
+    def process_buffer_job(self, job_key):
+        while True:
+            job, buffer_time = self._internal_buffer_queues[job_key].get()
+            with self.jobqueue_lock:
+                if not self.jobqueue.is_full(job_key):
+                    self.jobqueue.enqueue(job_key, job)
+                    continue
+
+            if (datetime.now() - buffer_time).total_seconds() < JOB_MAX_BUFFER_TIME:
+                self.log.debug("requeue into buffer")
+                self._internal_buffer_queues[job_key].put((job, buffer_time))
+                time.sleep(1.0)
+            else:
+                self.log.debug("timeout, discard job...")
+
+
+
+
