@@ -2,7 +2,6 @@
 from __future__ import (absolute_import, unicode_literals)
 import settings
 from logging.config import dictConfig
-import logging
 
 
 DEFAULT_LOGGING = {
@@ -36,8 +35,8 @@ DEFAULT_LOGGING = {
 def init_logging_config():
     config = DEFAULT_LOGGING
     try:
-        if settings.SETTING_CONFIG:
-            config = settings.SETTING_CONFIG
+        if settings.LOGGINGF_CONFIG:
+            config = settings.LOGGINGF_CONFIG
     except AttributeError as e:
         pass
 

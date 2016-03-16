@@ -4,7 +4,7 @@ from __future__ import (absolute_import, unicode_literals)
 import SocketServer
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import xmlrpclib
-from settings import RPC_HOST, RPC_PORT
+from settings import RPC_CONFIG
 
 
 class ElricRPCServer(SocketServer.ThreadingMixIn, SimpleXMLRPCServer):
@@ -22,7 +22,7 @@ class ElricRPCClient:
     def call(self, func_name, *args):
         try:
             # TODO: server也要修改, 参考http://hgoldfish.com/blogs/article/50/
-            server_uri = 'http://{host}:{port}'.format(host=RPC_HOST, port=RPC_PORT)
+            server_uri = 'http://{host}:{port}'.format(**RPC_CONFIG['server'])
             server = xmlrpclib.ServerProxy(server_uri, use_datetime=True)
             return getattr(server, func_name)(*args)
         except Exception as e:

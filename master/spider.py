@@ -7,12 +7,13 @@ from core.exceptions import JobAlreadyExist
 from xmlrpclib import Binary
 from core.job import Job
 from threading import RLock
+from settings import FILTER_CONFIG
 
 
 class Spider(RQMaster):
     def __init__(self, timezone=None):
         RQMaster.__init__(self, timezone)
-        self.filter = RedisFilter()
+        self.filter = RedisFilter(**FILTER_CONFIG)
         self.filter_lock = RLock()
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):

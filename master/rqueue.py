@@ -12,7 +12,7 @@ from core.job import Job
 from core.utils import timedelta_seconds
 from threading import Event, RLock
 from xmlrpclib import Binary
-from settings import REDIS_HOST, REDIS_PORT, JOB_MAX_BUFFER_TIME
+from settings import JOB_QUEUE_CONFIG, JOB_STORE_CONFIG
 from multiprocessing import Queue
 import threading
 import time
@@ -23,15 +23,16 @@ class RQMaster(BaseMaster):
 
     def __init__(self, timezone=None):
         BaseMaster.__init__(self)
-        self.jobqueue = RedisJobQueue(REDIS_HOST, REDIS_PORT, self)
+        self.jobqueue = RedisJobQueue(self, **JOB_QUEUE_CONFIG)
         self.jobqueue_lock = RLock()
         self.timezone = timezone or get_localzone()
         self._event = Event()
         self._stopped = True
-        self.jobstore = MongoJobStore(self)
+        self.jobstore = MongoJobStore(self, **JOB_STORE_CONFIG)
         #self.jobstore = MemoryJobStore(self)
         self.jobstore_lock = RLock()
         self._internal_buffer_queues = {}
+        self._job_maximum_buffer_time = JOB_QUEUE_CONFIG['buffer_time']
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):
         """
@@ -188,7 +189,7 @@ class RQMaster(BaseMaster):
                     self.jobqueue.enqueue(job_key, job)
                     continue
 
-            if (datetime.now() - buffer_time).total_seconds() < JOB_MAX_BUFFER_TIME:
+            if (datetime.now() - buffer_time).total_seconds() < self._job_maximum_buffer_time:
                 self.log.debug("requeue into buffer")
                 self._internal_buffer_queues[job_key].put((job, buffer_time))
                 time.sleep(1.0)

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, unicode_literals)
 
-import redis
 from core.job import Job
-from core.exceptions import AlreadyRunningException, log_exception
+from core.exceptions import AlreadyRunningException
 from xmlrpclib import Binary
 from worker.base import BaseWorker
 from jobqueue.rqueue import RedisJobQueue
@@ -11,7 +10,7 @@ from executor.pool import ProcessPoolExecutor
 from tzlocal import get_localzone
 from trigger.tool import create_trigger
 from core.rpc import ElricRPCClient
-from settings import REDIS_HOST, REDIS_PORT
+from settings import JOB_QUEUE_CONFIG
 import time
 from multiprocessing import Queue
 
@@ -19,7 +18,7 @@ from multiprocessing import Queue
 class RQWorker(BaseWorker):
     def __init__(self, name, listen_keys=None, worker_num=2, timezone=None, logger_name='elric_worker'):
         BaseWorker.__init__(self, name, logger_name)
-        self.jobqueue = RedisJobQueue(REDIS_HOST, REDIS_PORT, self)
+        self.jobqueue = RedisJobQueue(self, **JOB_QUEUE_CONFIG)
         self.listen_keys = []
         if listen_keys:
             self.listen_keys = ['%s:%s' % (self.name, listen_key) for listen_key in listen_keys]
@@ -65,12 +64,12 @@ class RQWorker(BaseWorker):
         # use worker's timezone if trigger don't provide specific `timezone` configuration
         trigger_args['timezone'] = self.timezone
         job_in_dict = {
-            'id': job_id,
+            'id': "%s:%s" % (self.name, job_id) if job_id else None,
             'func': func,
             'args': args,
             'trigger': create_trigger(trigger, trigger_args) if trigger else None,
             'kwargs': kwargs,
-            'filter_key': '%s_%s' % (self.name, filter_key),
+            'filter_key': '%s:%s:filter' % (self.name, filter_key),
             'filter_value': filter_value,
         }
         job = Job(**job_in_dict)

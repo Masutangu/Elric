@@ -4,7 +4,7 @@ from __future__ import (absolute_import, unicode_literals)
 from abc import ABCMeta, abstractmethod
 from core.rpc import ElricRPCServer
 import threading
-from settings import RPC_HOST, RPC_PORT
+from settings import RPC_CONFIG
 import logging
 from core.log import init_logging_config
 
@@ -15,7 +15,7 @@ class BaseMaster(object):
     def __init__(self):
         init_logging_config()
         self.log = logging.getLogger('elric.master')
-        self.rpc_server = self.start_rpc_server(RPC_HOST, RPC_PORT)
+        self.rpc_server = self.start_rpc_server(**RPC_CONFIG)
         self.rpc_server.register_function(self.submit_job, 'submit_job')
         self.rpc_server.register_function(self.update_job, 'update_job')
         self.rpc_server.register_function(self.remove_job, 'remove_job')
@@ -41,7 +41,7 @@ class BaseMaster(object):
     def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
         raise NotImplementedError('subclasses of BaseMaster must provide a finish_job() method')
 
-    def start_rpc_server(self, rpc_host, rpc_port):
+    def start_rpc_server(self, **config):
         """
             Start rpc server
 
@@ -49,7 +49,7 @@ class BaseMaster(object):
             :type rpc_port: Integer
         """
         self.log.debug('start rpc server...')
-        rpc_server = ElricRPCServer((rpc_host, rpc_port))
+        rpc_server = ElricRPCServer((config['server']['host'], config['server']['port']))
         thd = threading.Thread(target=rpc_server.serve_forever)
         thd.setDaemon(True)
         thd.start()

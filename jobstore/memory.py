@@ -5,17 +5,17 @@ from jobstore.base import BaseJobStore
 from core.utils import datetime_to_utc_timestamp, utc_timestamp_to_datetime
 from core.exceptions import JobAlreadyExist, JobDoesNotExist
 from collections import deque
-from settings import MAXIMUN_EXECUTE_RECORDS
 import datetime
 
 
 class MemoryJobStore(BaseJobStore):
 
-    def __init__(self, context):
+    def __init__(self, context, **config):
         BaseJobStore.__init__(self, context)
         self.job_info = {}
         self.job_execute_records = {}
         self.job_run_time = []
+        self.max_preserve_records = config['maximum_records']
 
     def add_job(self, job_id, job_key, next_run_time, serialized_job):
         """
@@ -79,7 +79,7 @@ class MemoryJobStore(BaseJobStore):
             :type details: str
         """
         if not self.job_execute_records.get(job_id):
-            self.job_execute_records[job_id] = deque(maxlen=MAXIMUN_EXECUTE_RECORDS)
+            self.job_execute_records[job_id] = deque(maxlen=self.max_preserve_records)
         self.job_execute_records[job_id].append((is_success, details, datetime.datetime.now()))
 
     def get_due_jobs(self, now):

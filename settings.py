@@ -1,17 +1,40 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, unicode_literals)
 
-RPC_HOST = 'localhost'
-RPC_PORT = 8000
 
-REDIS_HOST = 'localhost'
-REDIS_PORT = 6379
+JOB_QUEUE_CONFIG = {
+    'server': {
+        'host': 'localhost',
+        'port': 6379,
+        'password': None,
+        'db': 1,
+    },
+    'max_length': 3,
+    'buffer_time': 60
+}
 
-MAXIMUN_EXECUTE_RECORDS = 3
-JOB_MAX_BUFFER_TIME = 60
-JOB_QUEUE_MAX_LENGTH = 3
+FILTER_CONFIG = {
+    'server': {
+        'host': 'localhost',
+        'port': 6379,
+        'password': None,
+        'db': 1,
+    }
+}
 
-SETTING_CONFIG = {
+RPC_CONFIG = {
+    'server': {
+        'host': 'localhost',
+        'port': 8000,
+    }
+}
+
+JOB_STORE_CONFIG = {
+    'server': {},
+    'maximum_records': 3
+}
+
+LOGGINGF_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {

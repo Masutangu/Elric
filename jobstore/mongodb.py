@@ -10,11 +10,11 @@ import datetime
 
 
 class MongoJobStore(BaseJobStore):
-
-    def __init__(self, context, url=None):
+    def __init__(self, context, **config):
         BaseJobStore.__init__(self, context)
-        self.client = MongoClient(url)
+        self.client = MongoClient(**config['server'])
         self.db = self.client['elric']
+        self.max_preserve_records = config['maximum_records']
 
     def add_job(self, job_id, job_key, next_run_time, serialized_job):
         """
@@ -80,7 +80,7 @@ class MongoJobStore(BaseJobStore):
                     "execute_records": {
                         "$each": [execute_info, ],
                         "$sort": {"report_timestamp": 1},
-                        "$slice": -3
+                        "$slice": -self.max_preserve_records
                     }
                 }
             },

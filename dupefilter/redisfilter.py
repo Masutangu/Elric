@@ -2,12 +2,13 @@
 from __future__ import (absolute_import, unicode_literals)
 
 from dupefilter.base import BaseFilter
+import redis
 
 
 class RedisFilter(BaseFilter):
 
-    def __init__(self, server):
-        self.server = server
+    def __init__(self, **config):
+        self.server = redis.Redis(**config['server'])
 
     def exist(self, key, value):
         """
