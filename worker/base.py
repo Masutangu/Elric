@@ -10,9 +10,9 @@ class BaseWorker(object):
     __metaclass__ = ABCMeta
     name = None
 
-    def __init__(self, name):
+    def __init__(self, name, logger_name):
         init_logging_config()
-        self.log = logging.getLogger('elric.worker')
+        self.log = logging.getLogger(logger_name)
         self.name = name
         if not getattr(self, 'name', None):
             raise ValueError("%s must have a name" % type(self).__name__)

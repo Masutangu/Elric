@@ -17,8 +17,8 @@ from multiprocessing import Queue
 
 
 class RQWorker(BaseWorker):
-    def __init__(self, name, listen_keys=None, worker_num=2, timezone=None):
-        BaseWorker.__init__(self, name)
+    def __init__(self, name, listen_keys=None, worker_num=2, timezone=None, logger_name='elric_worker'):
+        BaseWorker.__init__(self, name, logger_name)
         self.jobqueue = RedisJobQueue(REDIS_HOST, REDIS_PORT, self)
         self.listen_keys = []
         if listen_keys:

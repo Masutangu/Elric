@@ -2,42 +2,23 @@
 from __future__ import (absolute_import, unicode_literals)
 
 from master.rqueue import RQMaster
-from dupefilter.memoryfilter import MemoryFilter
+from dupefilter.redisfilter import RedisFilter
 from core.exceptions import JobAlreadyExist
 from xmlrpclib import Binary
 from core.job import Job
 from threading import RLock
-import threading
-import cPickle
-from time import sleep
-import copy
-import os
 
 
 class Spider(RQMaster):
     def __init__(self, timezone=None):
         RQMaster.__init__(self, timezone)
-        self.filter_list = {}
+        self.filter = RedisFilter()
         self.filter_lock = RLock()
-        self.read_filter_file()
-        self.start_serialize_data()
-
-    def read_filter_file(self):
-        try:
-            f = open("elric_filter.dump", "rb")
-            self.filter_list = cPickle.load(f)
-            f.close()
-        except IOError as e:
-            self.log.warn("open elric_filter.dump failed, exception=%s" % e)
 
     def submit_job(self, serialized_job, job_key, job_id, replace_exist):
         def exist(key, value):
             with self.filter_lock:
-                try:
-                    return self.filter_list[key].exist(value)
-                except KeyError:
-                    self.filter_list[key] = MemoryFilter()
-                    return self.filter_list[key].exist(value)
+                return self.filter.exist(key, value)
 
         self.log.debug("client call submit job [%s]" % job_id)
 
@@ -79,32 +60,8 @@ class Spider(RQMaster):
         """
         self.log.debug("job_id [%s] finish" % job_id)
         RQMaster.finish_job(self, job_id, is_success, details, filter_key, filter_value)
+        # add job into filter only when job is finish successfully
         if is_success and filter_key and filter_value:
             with self.filter_lock:
-                try:
-                    self.filter_list[filter_key].add(filter_value)
-                except KeyError:
-                    self.filter_list[filter_key] = MemoryFilter()
-                    return self.filter_list[filter_key].add(filter_value)
+                self.filter.add(filter_key, filter_value)
 
-    def serialize_data(self):
-        """
-            dump filter_list to file every five minutes
-        """
-        while True:
-            self.log.debug("start to serialize data..")
-            f = open("elric_filter.dump.bk", "wb")
-            current_filter_list = copy.deepcopy(self.filter_list)
-            cPickle.dump(current_filter_list, f)
-            f.close()
-            os.rename("elric_filter.dump.bk", "elric_filter.dump")
-            sleep(20)
-
-    def start_serialize_data(self):
-        """
-            Start filter data serialization thread
-        """
-        self.log.debug('start serialize_data thread...')
-        thd = threading.Thread(target=self.serialize_data)
-        thd.setDaemon(True)
-        thd.start()

@@ -193,7 +193,7 @@ class RQMaster(BaseMaster):
                 self._internal_buffer_queues[job_key].put((job, buffer_time))
                 time.sleep(1.0)
             else:
-                self.log.debug("timeout, discard job...")
+                self.log.warning("timeout, discard job...")
 
 
 

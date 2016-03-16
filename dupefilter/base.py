@@ -11,10 +11,13 @@ class BaseFilter(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def exist(self, value):
+    def exist(self, key, value):
         raise NotImplementedError
 
+    @abstractmethod
+    def add(self, key, value):
+        raise NotImplementedError
 
     @abstractmethod
-    def clear(self):
+    def clear(self, key):
         raise NotImplementedError

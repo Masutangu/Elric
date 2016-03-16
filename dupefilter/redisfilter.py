@@ -6,21 +6,20 @@ from dupefilter.base import BaseFilter
 
 class RedisFilter(BaseFilter):
 
-    def __init__(self, server, key):
+    def __init__(self, server):
         self.server = server
-        self.key = key
 
-    def exist(self, value):
+    def exist(self, key, value):
         """
             check if value already exist
             if exist return 1
             if not exist return 0
         """
-        return self.server.sismember(self.key, value)
+        return self.server.sismember(key, value)
 
-    def add(self, value):
-        self.server.sadd(self.key, value)
+    def add(self, key, value):
+        self.server.sadd(key, value)
 
-    def clear(self):
+    def clear(self, key):
         """Clears fingerprints data"""
-        self.server.delete(self.key)
+        self.server.delete(key)
