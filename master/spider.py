@@ -63,6 +63,5 @@ class Spider(RQMaster):
         RQMaster.finish_job(self, job_id, is_success, details, filter_key, filter_value)
         # add job into filter only when job is finish successfully
         if is_success and filter_key and filter_value:
-            with self.filter_lock:
-                self.filter.add(filter_key, filter_value)
+            self.filter.add(filter_key, filter_value)
 

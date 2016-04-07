@@ -16,7 +16,7 @@ from multiprocessing import Queue
 
 
 class RQWorker(BaseWorker):
-    def __init__(self, name, listen_keys=None, worker_num=2, timezone=None, logger_name='elric_worker'):
+    def __init__(self, name, listen_keys=None, worker_num=2, timezone=None, logger_name='elric.worker'):
         BaseWorker.__init__(self, name, logger_name)
         self.jobqueue = RedisJobQueue(self, **JOB_QUEUE_CONFIG)
         self.listen_keys = []
@@ -73,7 +73,7 @@ class RQWorker(BaseWorker):
             'filter_value': filter_value,
         }
         job = Job(**job_in_dict)
-        self.rpc_client.call('submit_job', Binary(job.serialize()), job_key, job.id, replace_exist)
+        return self.rpc_client.call('submit_job', Binary(job.serialize()), job_key, job.id, replace_exist)
 
     def update_job(self, job_id, job_key, next_run_time, serialized_job):
         """

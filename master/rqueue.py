@@ -123,8 +123,8 @@ class RQMaster(BaseMaster):
             # check whether job queue is full
             if not self.jobqueue.is_full(key):
                 self.jobqueue.enqueue(key, job)
-                return
-        self._enqueue_buffer_queue(key, job)
+            else:
+                self._enqueue_buffer_queue(key, job)
 
     def start(self):
         """
