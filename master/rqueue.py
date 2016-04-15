@@ -13,7 +13,7 @@ from core.utils import timedelta_seconds
 from threading import Event, RLock
 from xmlrpclib import Binary
 from settings import JOB_QUEUE_CONFIG, JOB_STORE_CONFIG
-from multiprocessing import Queue
+from Queue import Queue
 import threading
 import time
 
