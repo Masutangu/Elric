@@ -11,19 +11,19 @@ class BaseJobStore(object):
         self.context = context
 
     @abstractmethod
-    def add_job(self, job_id, job_key, next_run_time, serialized_job):
+    def add_job(self, job):
         raise NotImplementedError('subclasses of BaseJobStore must provide a add_job() method')
 
     @abstractmethod
-    def update_job(self, job_id, job_key=None, next_run_time=None, serialized_job=None):
+    def update_job(self, job):
         raise NotImplementedError('subclasses of BaseJobStore must provide a update_job() method')
 
     @abstractmethod
-    def remove_job(self, job_id):
+    def remove_job(self, job):
         raise NotImplementedError('subclasses of BaseJobStore must provide a remove_job() method')
 
     @abstractmethod
-    def save_execute_record(self, job_id, is_success, details):
+    def save_execute_record(self, job):
         raise NotImplementedError('subclasses of BaseJobStore must provide a save_execute_record() method')
 
     @abstractmethod

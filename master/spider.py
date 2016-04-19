@@ -4,8 +4,6 @@ from __future__ import (absolute_import, unicode_literals)
 from master.rqueue import RQMaster
 from dupefilter.redisfilter import RedisFilter
 from core.exceptions import JobAlreadyExist
-from xmlrpclib import Binary
-from core.job import Job
 from threading import RLock
 from settings import FILTER_CONFIG
 
@@ -16,41 +14,34 @@ class Spider(RQMaster):
         self.filter = RedisFilter(**FILTER_CONFIG)
         self.filter_lock = RLock()
 
-    def submit_job(self, serialized_job, job_key, job_id, replace_exist):
+    def submit_job(self, job):
         def exist(key, value):
             with self.filter_lock:
                 return self.filter.exist(key, value)
 
-        self.log.debug("client call submit job [%s]" % job_id)
+        self.log.debug("client call submit job [%s]" % job.id)
 
-        if isinstance(serialized_job, Binary):
-            serialized_job = serialized_job.data
-
-        job_in_dict = Job.deserialize_to_dict(serialized_job)
-        filter_key = job_in_dict['filter_key']
-        filter_value = job_in_dict['filter_value']
-
-        if filter_key and filter_value:
-            if exist(filter_key, filter_value):
-                self.log.debug("job [%s] has been filter..." % job_id)
+        if job.filter_key and job.filter_value:
+            if exist(job.filter_key, job.filter_value):
+                self.log.debug("job [%s] has been filter..." % job.id)
                 return False
 
-        if not job_in_dict['trigger']:
-            self._enqueue_job(job_key, serialized_job)
+        if not job.trigger:
+            self._enqueue_job(job.job_key, job.serialize())
         else:
             with self.jobstore_lock:
                 try:
-                    self.jobstore.add_job(job_id, job_key, job_in_dict['next_run_time'], serialized_job)
+                    self.jobstore.add_job(job)
                 except JobAlreadyExist:
-                    if replace_exist:
-                        self.jobstore.update_job(job_id, job_key, job_in_dict['next_run_time'], serialized_job)
+                    if job.replace_exist:
+                        self.jobstore.update_job(job)
                     else:
-                        self.log.warn('job [%s] already exist' % job_id)
+                        self.log.warn('job [%s] already exist' % job.id)
             self.wake_up()
 
         return True
 
-    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+    def finish_job(self, job):
         """
             Receive finish_job rpc request from worker.
             :type job_id str
@@ -59,9 +50,9 @@ class Spider(RQMaster):
             :type filter_key str or int
             :type filter_value str or int
         """
-        self.log.debug("job_id [%s] finish" % job_id)
-        RQMaster.finish_job(self, job_id, is_success, details, filter_key, filter_value)
+        self.log.debug("job_id [%s] finish" % job.id)
+        RQMaster.finish_job(self, job)
         # add job into filter only when job is finish successfully
-        if is_success and filter_key and filter_value:
-            self.filter.add(filter_key, filter_value)
+        if job.is_success and job.filter_key and job.filter_value:
+            self.filter.add(job.filter_key, job.filter_value)
 

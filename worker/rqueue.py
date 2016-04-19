@@ -9,7 +9,6 @@ from jobqueue.rqueue import RedisJobQueue
 from executor.pool import ProcessPoolExecutor
 from tzlocal import get_localzone
 from trigger.tool import create_trigger
-from core.rpc import ElricRPCClient
 from settings import JOB_QUEUE_CONFIG
 import time
 from multiprocessing import Queue
@@ -26,7 +25,6 @@ class RQWorker(BaseWorker):
         self.internal_job_queue = Queue(maxsize=worker_num)
         self.executor = ProcessPoolExecutor(worker_num, self)
         self._stopped = True
-        self.rpc_client = ElricRPCClient(self)
 
     def start(self):
         if self.running:
@@ -50,7 +48,7 @@ class RQWorker(BaseWorker):
     def submit_job(self, func, job_key, args=None, kwargs=None, trigger=None, job_id=None,
                    replace_exist=False, filter_key='', filter_value='', **trigger_args):
         """
-            submit job to master through rpc
+            submit job to master through redis queue
             :type func: str or callable obj or unicode
             :type job_key: str or unicode
             :type args: tuple or list
@@ -69,30 +67,37 @@ class RQWorker(BaseWorker):
             'args': args,
             'trigger': create_trigger(trigger, trigger_args) if trigger else None,
             'kwargs': kwargs,
+            'job_key': job_key,
             'filter_key': '%s:%s:filter' % (self.name, filter_key),
             'filter_value': filter_value,
+            'replace_exist': replace_exist
+
         }
         job = Job(**job_in_dict)
-        return self.rpc_client.call('submit_job', Binary(job.serialize()), job_key, job.id, replace_exist)
-
-    def update_job(self, job_id, job_key, next_run_time, serialized_job):
-        """
-            send update job request to master through rpc
-            :type job_id: str
-            :type job_key: str
-            :type next_run_time: datetime.datetime
-            :type serialized_job: str
-        """
-        job_key = '%s:%s' % (self.name, job_key)
-        self.rpc_client.call('update_job', job_id, job_key,
-                        next_run_time, Binary(serialized_job))
+        job.check()
+        self.jobqueue.enqueue('__elric_submit_channel__', job.serialize())
 
     def remove_job(self, job_id):
         """
-            send remove job request to master through rpc
+            send remove job request to master through redis queue
             :type job_id: str
         """
-        self.rpc_client.call('remove_job', job_id)
+        job_in_dict = {
+            'id': "%s:%s" % (self.name, job_id)
+        }
+        job = Job(**job_in_dict)
+        self.jobqueue.enqueue('__elric_remove_channel__', job.serialize())
+
+    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+        job_in_dict = {
+            'id': job_id,
+            'is_success': is_success,
+            'details': details,
+            'filter_key': filter_key,
+            'filter_value': filter_value
+        }
+        job = Job(**job_in_dict)
+        self.jobqueue.enqueue('__elric_finish_channel__', job.serialize())
 
     @property
     def running(self):

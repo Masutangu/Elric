@@ -5,6 +5,7 @@ from trigger.interval import IntervalTrigger
 from trigger.date import DateTrigger
 from trigger.cron import CronTrigger
 
+
 def create_trigger(trigger_name, trigger_args):
     trigger_class = {
         'interval': IntervalTrigger,

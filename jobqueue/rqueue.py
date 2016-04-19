@@ -16,7 +16,7 @@ class RedisJobQueue(JobQueue):
         return self.server.llen(key)
 
     def enqueue(self, key, value):
-        self.server.lpush(key, value)
+        return self.server.lpush(key, value)
 
     def dequeue(self, key, timeout=0):
         data = self.server.brpop(key, timeout)

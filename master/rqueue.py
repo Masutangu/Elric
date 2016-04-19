@@ -34,7 +34,7 @@ class RQMaster(BaseMaster):
         self._internal_buffer_queues = {}
         self._job_maximum_buffer_time = JOB_QUEUE_CONFIG['buffer_time']
 
-    def submit_job(self, serialized_job, job_key, job_id, replace_exist):
+    def submit_job(self, job):
         """
             Receive submit_job rpc request from worker.
             :type serialized_job str or xmlrpclib.Binary
@@ -42,28 +42,25 @@ class RQMaster(BaseMaster):
             :type job_id str
             :type replace_exist bool
         """
-        self.log.debug('client call submit job, id=%s, key=%s' % (job_id, job_key))
-        if isinstance(serialized_job, Binary):
-            serialized_job = serialized_job.data
-        job_in_dict = Job.deserialize_to_dict(serialized_job)
+        self.log.debug('client submit job, id=%s, key=%s' % (job.id, job.job_key))
         # if job doesn't contains trigger, then enqueue it into job queue immediately
-        if not job_in_dict['trigger']:
-            self._enqueue_job(job_key, serialized_job)
+        if not job.trigger:
+            self._enqueue_job(job.job_key, job.serialize())
         # else store job into job store first
         else:
             # should I need a lock here?
             with self.jobstore_lock:
                 try:
-                    self.jobstore.add_job(job_id, job_key, job_in_dict['next_run_time'], serialized_job)
+                    self.jobstore.add_job(job)
                 except JobAlreadyExist as e:
-                    if replace_exist:
-                        self.jobstore.update_job(job_id, job_key, job_in_dict['next_run_time'], serialized_job)
+                    if job.replace_exist:
+                        self.jobstore.update_job(job)
                     else:
                         self.log.error(e)
             # wake up when new job has store into job store
             self.wake_up()
 
-    def update_job(self, job_id, job_key, next_run_time, serialized_job):
+    def update_job(self, job):
         """
             Receive update_job rpc request from worker
             :type job_id: str
@@ -72,27 +69,24 @@ class RQMaster(BaseMaster):
             :type serialized_job str or xmlrpclib.Binary
 
         """
-        if isinstance(serialized_job, Binary):
-            serialized_job = serialized_job.data
         with self.jobstore_lock:
             try:
-                self.jobstore.update_job(job_id, job_key=job_key, next_run_time=next_run_time,
-                                         serialized_job=serialized_job)
+                self.jobstore.update_job(job)
             except JobDoesNotExist as e:
                 self.log.error(e)
 
-    def remove_job(self, job_id):
+    def remove_job(self, job):
         """
             Receive remove_job rpc request from worker
             :type job_id: str
         """
         with self.jobstore_lock:
             try:
-                self.jobstore.remove_job(job_id)
+                self.jobstore.remove_job(job)
             except JobDoesNotExist:
-                self.log.error('remove job error. job id %s does not exist' % job_id)
+                self.log.error('remove job error. job id %s does not exist' % job.id)
 
-    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+    def finish_job(self, job):
         """
             Receive finish_job rpc request from worker.
             :type job_id str
@@ -102,7 +96,7 @@ class RQMaster(BaseMaster):
             :type filter_value str or int
         """
         with self.jobstore_lock:
-            self.jobstore.save_execute_record(job_id, is_success, details)
+            self.jobstore.save_execute_record(job)
 
     def _enqueue_buffer_queue(self, key, job):
         self.log.debug("job queue [%s] is full, put job into buffer queue" % key)
@@ -119,12 +113,15 @@ class RQMaster(BaseMaster):
             :type key: str
             :type job: str or xmlrpc.Binary
         """
+        self.log.debug('enqueue job key=[%s]' % key)
         with self.jobqueue_lock:
             # check whether job queue is full
             if not self.jobqueue.is_full(key):
                 self.jobqueue.enqueue(key, job)
             else:
                 self._enqueue_buffer_queue(key, job)
+
+
 
     def start(self):
         """
@@ -137,6 +134,8 @@ class RQMaster(BaseMaster):
         self._stopped = False
         self.log.debug('eric master start...')
 
+        self.start_subscribe_thread()
+
         while True:
             now = datetime.now(self.timezone)
             wait_seconds = None
@@ -145,16 +144,16 @@ class RQMaster(BaseMaster):
                     # enqueue due job into redis queue
                     self._enqueue_job(job_key, serialized_job)
                     # update job's information, such as next_run_time
-                    job_in_dict = Job.deserialize_to_dict(serialized_job)
-                    last_run_time = Job.get_serial_run_times(job_in_dict, now)
+                    job = Job.deserialize(serialized_job)
+                    last_run_time = Job.get_serial_run_times(job, now)
                     if last_run_time:
-                        next_run_time = Job.get_next_trigger_time(job_in_dict, last_run_time[-1])
+                        next_run_time = Job.get_next_trigger_time(job, last_run_time[-1])
                         if next_run_time:
-                            job_in_dict['next_run_time'] = next_run_time
-                            self.update_job(job_id, job_key, next_run_time, Job.dict_to_serialization(job_in_dict))
+                            job.next_run_time = next_run_time
+                            self.update_job(job)
                         else:
                             # if job has no next run time, then remove it from jobstore
-                            self.remove_job(job_id=job_id)
+                            self.remove_job(job)
 
                 # get next closet run time job from jobstore and set it to be wake up time
                 closest_run_time = self.jobstore.get_closest_run_time()
@@ -196,6 +195,19 @@ class RQMaster(BaseMaster):
             else:
                 self.log.warning("timeout, discard job...")
 
+    def subscribe_mq(self):
+        while self.running:
+            try:
+                # grab job from job queue only if internal_job_queue has space
+                key, serialized_job = self.jobqueue.dequeue_any(['__elric_submit_channel__',
+                                                                 '__elric_remove_channel__',
+                                                                 '__elric_finish_channel__'])
+                Job.deserialize(serialized_job)
+                self.func_map[key](Job.deserialize(serialized_job))
+            except TypeError as e:
+                self.log.error(e)
+                time.sleep(60)
+                continue
 
 
 

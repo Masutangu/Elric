@@ -2,9 +2,7 @@
 from __future__ import (absolute_import, unicode_literals)
 
 from abc import ABCMeta, abstractmethod
-from core.rpc import ElricRPCServer
 import threading
-from settings import RPC_CONFIG
 import logging
 from core.log import init_logging_config
 
@@ -15,42 +13,39 @@ class BaseMaster(object):
     def __init__(self):
         init_logging_config()
         self.log = logging.getLogger('elric.master')
-        self.rpc_server = self.start_rpc_server(**RPC_CONFIG)
-        self.rpc_server.register_function(self.submit_job, 'submit_job')
-        self.rpc_server.register_function(self.update_job, 'update_job')
-        self.rpc_server.register_function(self.remove_job, 'remove_job')
-        self.rpc_server.register_function(self.finish_job, 'finish_job')
+        # TODO: avoid hard code
+        self.func_map = {
+            '__elric_submit_channel__': self.submit_job,
+            '__elric_remove_channel__': self.remove_job,
+            '__elric_finish_channel__': self.finish_job
+        }
 
     @abstractmethod
     def start(self):
         raise NotImplementedError('subclasses of BaseMaster must provide a start() method')
 
     @abstractmethod
-    def submit_job(self, serialized_job, job_key, job_id, replace_exist):
+    def submit_job(self, job):
         raise NotImplementedError('subclasses of BaseMaster must provide a submit_job() method')
 
     @abstractmethod
-    def update_job(self, job_id, job_key, next_run_time, serialized_job):
-        raise NotImplementedError('subclasses of BaseMaster must provide a update_job() method')
-
-    @abstractmethod
-    def remove_job(self, job_id):
+    def remove_job(self, job):
         raise NotImplementedError('subclasses of BaseMaster must provide a remove_job() method')
 
     @abstractmethod
-    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+    def finish_job(self, job):
         raise NotImplementedError('subclasses of BaseMaster must provide a finish_job() method')
 
-    def start_rpc_server(self, **config):
-        """
-            Start rpc server
+    @abstractmethod
+    def subscribe_mq(self):
+        raise NotImplementedError('subclasses of BaseMaster must provide a subscribe_mq() method')
 
-            :type rpc_host: String
-            :type rpc_port: Integer
+    def start_subscribe_thread(self):
         """
-        self.log.debug('start rpc server...')
-        rpc_server = ElricRPCServer((config['server']['host'], config['server']['port']))
-        thd = threading.Thread(target=rpc_server.serve_forever)
+            Start a new thread to subscribe message queue
+        :return:
+        """
+        self.log.debug('start subscribe thread..')
+        thd = threading.Thread(target=self.subscribe_mq)
         thd.setDaemon(True)
         thd.start()
-        return rpc_server

@@ -16,7 +16,7 @@ class MongoJobStore(BaseJobStore):
         self.db = self.client['elric']
         self.max_preserve_records = config['maximum_records']
 
-    def add_job(self, job_id, job_key, next_run_time, serialized_job):
+    def add_job(self, job):
         """
             add job
             :type job_id: str
@@ -24,20 +24,20 @@ class MongoJobStore(BaseJobStore):
             :type next_run_time: datetime.datetime
             :type serialized_job: str or xmlrpclib.Binary
         """
-        next_timestamp = datetime_to_utc_timestamp(next_run_time)
+        next_timestamp = datetime_to_utc_timestamp(job.next_run_time)
         try:
             self.db.elric_jobs.insert_one(
                 {
-                    "serialized_job": serialized_job.decode("raw_unicode_escape"),
-                    "job_key": job_key,
+                    "serialized_job": job.serialize().decode("raw_unicode_escape"),
+                    "job_key": job.job_key,
                     "next_timestamp": next_timestamp,
-                    "_id": job_id,
+                    "_id": job.id,
                 }
             )
         except pymongo.errors.DuplicateKeyError:
-            raise JobAlreadyExist("add job failed! job [%s] has already exist" % job_id)
+            raise JobAlreadyExist("add job failed! job [%s] has already exist" % job.id)
 
-    def update_job(self, job_id, job_key=None, next_run_time=None, serialized_job=None):
+    def update_job(self, job):
         """
             update job
             :type job_id: str
@@ -46,35 +46,35 @@ class MongoJobStore(BaseJobStore):
             :type serialized_job: str or xmlrpclib.Binary
         """
         update_job_info = {}
-        if job_key is not None:
-            update_job_info['job_key'] = job_key
-        if serialized_job is not None:
-            update_job_info['serialized_job'] = serialized_job.decode("raw_unicode_escape")
-        update_job_info['next_timestamp'] = datetime_to_utc_timestamp(next_run_time)
+        if job.job_key is not None:
+            update_job_info['job_key'] = job.job_key
+
+        update_job_info['serialized_job'] = job.serialize().decode("raw_unicode_escape")
+        update_job_info['next_timestamp'] = datetime_to_utc_timestamp(job.next_run_time)
         result = self.db.elric_jobs.update_one(
-            {"_id": job_id},
+            {"_id": job.id},
             {
                 "$set": update_job_info,
                 "$currentDate": {"lastModified": True}
             }
         )
         if result.matched_count == 0:
-            raise JobDoesNotExist("update job failed! job [%s] does not exist" % job_id)
+            raise JobDoesNotExist("update job failed! job [%s] does not exist" % job.id)
 
-    def remove_job(self, job_id):
+    def remove_job(self, job):
         """
             remove job
             :type job_id: str
         """
-        result = self.db.elric_jobs.delete_one({"_id": job_id})
+        result = self.db.elric_jobs.delete_one({"_id": job.id})
         if result.deleted_count == 0:
-            raise JobDoesNotExist("remove job failed! job [%s] does not exist" % job_id)
+            raise JobDoesNotExist("remove job failed! job [%s] does not exist" % job.id)
 
-    def save_execute_record(self, job_id, is_success, details):
-        execute_info = {"is_success": is_success, "details": details,
+    def save_execute_record(self, job):
+        execute_info = {"is_success": job.is_success, "details": job.details,
                         "report_timestamp": datetime.datetime.now()}
         self.db.elric_execute_records.update(
-            {"_id": job_id},
+            {"_id": job.id},
             {
                 "$push": {
                     "execute_records": {

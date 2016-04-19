@@ -20,10 +20,10 @@ class ProcessPoolExecutor(BaseExecutor):
             else:
                 self.context.log.debug('job [%s] finish, result=[%s]' % (job.id, f.result()))
 
-            self.context.rpc_client.call('finish_job', job.id, False if f.exception() else True,
-                                         str(f.exception_info()) if f.exception() else '',
-                                         job.filter_key if job.filter_key else '',
-                                         job.filter_value if job.filter_value else '')
+            self.context.finish_job(job.id, False if f.exception() else True,
+                                    str(f.exception_info()) if f.exception() else None,
+                                    job.filter_key if job.filter_key else None,
+                                    job.filter_value if job.filter_value else None)
         future = self._pool.submit(job.func, *job.args, **job.kwargs)
         future.add_done_callback(job_done)
 
