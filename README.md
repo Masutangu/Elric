@@ -91,6 +91,8 @@ Step 3. Start master
 python test_worker.py
 ```
 
+For more information
+-------------
 Documentation [described in this blog post](http://masutangu.com/2016/07/elric-documentation/).
 
 
