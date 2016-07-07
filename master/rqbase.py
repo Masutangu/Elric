@@ -18,7 +18,7 @@ import time
 from core.lock import distributed_lock
 
 
-class RQMaster(BaseMaster):
+class RQMasterBase(BaseMaster):
 
     MIN_WAIT_TIME = 5
 

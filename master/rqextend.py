@@ -1,16 +1,17 @@
 # -*- coding:utf-8 -*-
 from __future__ import (absolute_import, unicode_literals)
 
-from master.rqueue import RQMaster
+from master.rqbase import RQMasterBase
 from dupefilter.redisfilter import RedisFilter
 from core.exceptions import JobAlreadyExist
 from threading import RLock
-from settings import FILTER_CONFIG
+from settings import FILTER_CONFIG, DISTRIBUTED_LOCK_CONFIG
+from core.lock import distributed_lock
 
 
-class Spider(RQMaster):
+class RQMasterExtend(RQMasterBase):
     def __init__(self, timezone=None):
-        RQMaster.__init__(self, timezone)
+        RQMasterBase.__init__(self, timezone)
         self.filter = RedisFilter(**FILTER_CONFIG)
         self.filter_lock = RLock()
 
@@ -21,15 +22,15 @@ class Spider(RQMaster):
 
         self.log.debug("client call submit job [%s]" % job.id)
 
-        if job.filter_key and job.filter_value:
-            if exist(job.filter_key, job.filter_value):
+        if job.need_filter:
+            if exist(job.filter_key, job.id):
                 self.log.debug("job [%s] has been filter..." % job.id)
                 return False
 
         if not job.trigger:
             self._enqueue_job(job.job_key, job.serialize())
         else:
-            with self.jobstore_lock:
+            with distributed_lock(**DISTRIBUTED_LOCK_CONFIG):
                 try:
                     self.jobstore.add_job(job)
                 except JobAlreadyExist:
@@ -51,8 +52,8 @@ class Spider(RQMaster):
             :type filter_value str or int
         """
         self.log.debug("job_id [%s] finish" % job.id)
-        RQMaster.finish_job(self, job)
+        RQMasterBase.finish_job(self, job)
         # add job into filter only when job is finish successfully
-        if job.is_success and job.filter_key and job.filter_value:
-            self.filter.add(job.filter_key, job.filter_value)
+        if job.is_success and job.need_filter:
+            self.filter.add(job.filter_key, job.id)
 

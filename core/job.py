@@ -22,8 +22,7 @@ class Job(object):
         trigger = job_in_dict.get('trigger', None)
         next_run_time = job_in_dict.get('next_run_time', None)
         job_key= job_in_dict.get('job_key', None)
-        filter_key = job_in_dict.get('filter_key', None)
-        filter_value = job_in_dict.get('filter_value', None)
+        need_filter = job_in_dict.get('need_filter', False)
         replace_exist = job_in_dict.get('replace_exist', False)
         is_success = job_in_dict.get('is_success', None)
         details = job_in_dict.get('details', None)
@@ -44,8 +43,7 @@ class Job(object):
         self.id = id or uuid4().hex
         self.__func = ref_to_func
         self.job_key = job_key
-        self.filter_key = filter_key
-        self.filter_value = filter_value
+        self.need_filter = need_filter
         self.replace_exist = replace_exist
         self.is_success = is_success
         self.details = details
@@ -63,8 +61,7 @@ class Job(object):
             'args': self.args,
             'kwargs':self.kwargs,
             'job_key': self.job_key,
-            'filter_key': self.filter_key,
-            'filter_value': self.filter_value,
+            'need_filter': self.need_filter,
             'replace_exist': self.replace_exist,
             'is_success': self.is_success,
             'details': self.details
@@ -77,6 +74,10 @@ class Job(object):
     @property
     def func(self):
         return ref_to_obj(self.__func)
+
+    @property
+    def filter_key(self):
+        return "%s:filter" % self.job_key
 
     @classmethod
     def deserialize(cls, serialization):

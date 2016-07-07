@@ -36,9 +36,9 @@ class RQWorker(BaseWorker):
             try:
                 # grab job from job queue only if internal_job_queue has space
                 self.internal_job_queue.put("#", True)
-                key, serialized_job = self.jobqueue.dequeue_any(self.listen_keys)
+                job_key, serialized_job = self.jobqueue.dequeue_any(self.listen_keys)
                 job = Job.deserialize(serialized_job)
-                self.log.debug('get job id=[%s] func=[%s]from key %s' % (job.id, job.func, key))
+                self.log.debug('get job id=[%s] func=[%s]from key %s' % (job.id, job.func, job.job_key))
                 self.executor.execute_job(job)
             except TypeError as e:
                 self.log.error(e)
@@ -46,7 +46,7 @@ class RQWorker(BaseWorker):
                 continue
 
     def submit_job(self, func, job_key, args=None, kwargs=None, trigger=None, job_id=None,
-                   replace_exist=False, filter_key='', filter_value='', **trigger_args):
+                   replace_exist=False, need_filter=False, **trigger_args):
         """
             submit job to master through redis queue
             :type func: str or callable obj or unicode
@@ -58,7 +58,6 @@ class RQWorker(BaseWorker):
             :type replace_exist: bool
             :type trigger_args: dict
         """
-        job_key = '%s:%s' % (self.name, job_key)
         # use worker's timezone if trigger don't provide specific `timezone` configuration
         trigger_args['timezone'] = self.timezone
         job_in_dict = {
@@ -67,11 +66,9 @@ class RQWorker(BaseWorker):
             'args': args,
             'trigger': create_trigger(trigger, trigger_args) if trigger else None,
             'kwargs': kwargs,
-            'job_key': job_key,
-            'filter_key': '%s:%s:filter' % (self.name, filter_key),
-            'filter_value': filter_value,
+            'job_key': '%s:%s' % (self.name, job_key),
+            'need_filter': need_filter,
             'replace_exist': replace_exist
-
         }
         job = Job(**job_in_dict)
         job.check()
@@ -88,13 +85,13 @@ class RQWorker(BaseWorker):
         job = Job(**job_in_dict)
         self.jobqueue.enqueue('__elric_remove_channel__', job.serialize())
 
-    def finish_job(self, job_id, is_success, details, filter_key=None, filter_value=None):
+    def finish_job(self, job_id, is_success, details, job_key, need_filter):
         job_in_dict = {
             'id': job_id,
+            'job_key': job_key,
             'is_success': is_success,
             'details': details,
-            'filter_key': filter_key,
-            'filter_value': filter_value
+            'need_filter': need_filter
         }
         job = Job(**job_in_dict)
         self.jobqueue.enqueue('__elric_finish_channel__', job.serialize())
