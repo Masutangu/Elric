@@ -12,10 +12,12 @@ from core.job import Job
 from core.utils import timedelta_seconds
 from threading import Event, RLock
 from xmlrpclib import Binary
-from settings import JOB_QUEUE_CONFIG, JOB_STORE_CONFIG
+from settings import JOB_QUEUE_CONFIG, JOB_STORE_CONFIG, DISTRIBUTED_LOCK_CONFIG
 from Queue import Queue
 import threading
 import time
+from core.lock import distributed_lock
+
 
 
 class RQMaster(BaseMaster):
@@ -30,7 +32,6 @@ class RQMaster(BaseMaster):
         self._stopped = True
         self.jobstore = MongoJobStore(self, **JOB_STORE_CONFIG)
         #self.jobstore = MemoryJobStore(self)
-        self.jobstore_lock = RLock()
         self._internal_buffer_queues = {}
         self._job_maximum_buffer_time = JOB_QUEUE_CONFIG['buffer_time']
 
@@ -48,8 +49,7 @@ class RQMaster(BaseMaster):
             self._enqueue_job(job.job_key, job.serialize())
         # else store job into job store first
         else:
-            # should I need a lock here?
-            with self.jobstore_lock:
+            with distributed_lock(**DISTRIBUTED_LOCK_CONFIG):
                 try:
                     self.jobstore.add_job(job)
                 except JobAlreadyExist as e:
@@ -69,22 +69,20 @@ class RQMaster(BaseMaster):
             :type serialized_job str or xmlrpclib.Binary
 
         """
-        with self.jobstore_lock:
-            try:
-                self.jobstore.update_job(job)
-            except JobDoesNotExist as e:
-                self.log.error(e)
+        try:
+            self.jobstore.update_job(job)
+        except JobDoesNotExist as e:
+            self.log.error(e)
 
     def remove_job(self, job):
         """
             Receive remove_job rpc request from worker
             :type job_id: str
         """
-        with self.jobstore_lock:
-            try:
-                self.jobstore.remove_job(job)
-            except JobDoesNotExist:
-                self.log.error('remove job error. job id %s does not exist' % job.id)
+        try:
+            self.jobstore.remove_job(job)
+        except JobDoesNotExist:
+            self.log.error('remove job error. job id %s does not exist' % job.id)
 
     def finish_job(self, job):
         """
@@ -95,8 +93,7 @@ class RQMaster(BaseMaster):
             :type filter_key str or int
             :type filter_value str or int
         """
-        with self.jobstore_lock:
-            self.jobstore.save_execute_record(job)
+        self.jobstore.save_execute_record(job)
 
     def _enqueue_buffer_queue(self, key, job):
         self.log.debug("job queue [%s] is full, put job into buffer queue" % key)
@@ -139,7 +136,7 @@ class RQMaster(BaseMaster):
         while True:
             now = datetime.now(self.timezone)
             wait_seconds = None
-            with self.jobstore_lock:
+            with distributed_lock(**DISTRIBUTED_LOCK_CONFIG):
                 for job_id, job_key, serialized_job in self.jobstore.get_due_jobs(now):
                     # enqueue due job into redis queue
                     self._enqueue_job(job_key, serialized_job)

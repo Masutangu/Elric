@@ -2,6 +2,18 @@
 from __future__ import (absolute_import, unicode_literals)
 
 
+DISTRIBUTED_LOCK_CONFIG = {
+    'server': {
+        'host': 'localhost',
+        'port': 6379,
+        'password': None,
+        'db': 1,
+    },
+    'resource': 'elric_distributed_lock',
+    'retry_count': 5,
+    'retry_delay': 0.2,
+}
+
 JOB_QUEUE_CONFIG = {
     'server': {
         'host': 'localhost',
@@ -9,8 +21,8 @@ JOB_QUEUE_CONFIG = {
         'password': None,
         'db': 1,
     },
-    'max_length': 3,
-    'buffer_time': 60
+    'max_length': 100000,
+    'buffer_time': 10
 }
 
 FILTER_CONFIG = {
@@ -18,14 +30,7 @@ FILTER_CONFIG = {
         'host': 'localhost',
         'port': 6379,
         'password': None,
-        'db': 1,
-    }
-}
-
-RPC_CONFIG = {
-    'server': {
-        'host': 'localhost',
-        'port': 8000,
+        'db': 0,
     }
 }
 
@@ -53,7 +58,7 @@ LOGGINGF_CONFIG = {
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'standard',
             'filename': 'worker.log',
-            'maxBytes': 1024*1024,
+            'maxBytes': 1024*1024*1024,
             'backupCount': 5,
         },
         'master': {
@@ -61,7 +66,7 @@ LOGGINGF_CONFIG = {
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'standard',
             'filename': 'master.log',
-            'maxBytes': 1024*1024,
+            'maxBytes': 1024*1024*1024,
             'backupCount': 5,
         }
     },
