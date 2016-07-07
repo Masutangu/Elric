@@ -18,9 +18,9 @@ import time
 from core.lock import distributed_lock
 
 
-
 class RQMaster(BaseMaster):
-    MAX_WAIT_TIME = 4294967  # Maximum value accepted by Event.wait() on Windows
+
+    MIN_WAIT_TIME = 5
 
     def __init__(self, timezone=None):
         BaseMaster.__init__(self)
@@ -142,9 +142,9 @@ class RQMaster(BaseMaster):
                 closest_run_time = self.jobstore.get_closest_run_time()
 
             if closest_run_time is not None:
-                wait_seconds = max(timedelta_seconds(closest_run_time - now), 0)
+                wait_seconds = min(max(timedelta_seconds(closest_run_time - now), 0), self.MIN_WAIT_TIME)
                 self.log.debug('Next wakeup is due at %s (in %f seconds)' % (closest_run_time, wait_seconds))
-            self._event.wait(wait_seconds if wait_seconds is not None else self.MAX_WAIT_TIME)
+            self._event.wait(wait_seconds if wait_seconds is not None else self.MIN_WAIT_TIME)
             self._event.clear()
 
     def wake_up(self):

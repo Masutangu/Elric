@@ -24,4 +24,3 @@ class distributed_lock(object):
     def __exit__(self, type, value, traceback):
         self.dlm.unlock(self.dlm_lock)
         self.dlm_lock = None
-        
