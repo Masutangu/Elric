@@ -11,7 +11,6 @@ from tzlocal import get_localzone
 from core.job import Job
 from core.utils import timedelta_seconds
 from threading import Event, RLock
-from xmlrpclib import Binary
 from settings import JOB_QUEUE_CONFIG, JOB_STORE_CONFIG, DISTRIBUTED_LOCK_CONFIG
 from Queue import Queue
 import threading
@@ -37,11 +36,8 @@ class RQMaster(BaseMaster):
 
     def submit_job(self, job):
         """
-            Receive submit_job rpc request from worker.
-            :type serialized_job str or xmlrpclib.Binary
-            :type job_key str
-            :type job_id str
-            :type replace_exist bool
+            process submit_job request from worker.
+            :type job: Job
         """
         self.log.debug('client submit job, id=%s, key=%s' % (job.id, job.job_key))
         # if job doesn't contains trigger, then enqueue it into job queue immediately
@@ -54,7 +50,7 @@ class RQMaster(BaseMaster):
                     self.jobstore.add_job(job)
                 except JobAlreadyExist as e:
                     if job.replace_exist:
-                        self.jobstore.update_job(job)
+                        self.update_job(job)
                     else:
                         self.log.error(e)
             # wake up when new job has store into job store
@@ -62,12 +58,8 @@ class RQMaster(BaseMaster):
 
     def update_job(self, job):
         """
-            Receive update_job rpc request from worker
-            :type job_id: str
-            :type job_key: str
-            :type next_run_time datetime.datetime
-            :type serialized_job str or xmlrpclib.Binary
-
+            update job in jobstore
+            :type job: Job
         """
         try:
             self.jobstore.update_job(job)
@@ -76,8 +68,8 @@ class RQMaster(BaseMaster):
 
     def remove_job(self, job):
         """
-            Receive remove_job rpc request from worker
-            :type job_id: str
+            remove job from jobstore
+            :type job: Job
         """
         try:
             self.jobstore.remove_job(job)
@@ -86,12 +78,8 @@ class RQMaster(BaseMaster):
 
     def finish_job(self, job):
         """
-            Receive finish_job rpc request from worker.
-            :type job_id str
-            :type is_success bool
-            :type details str
-            :type filter_key str or int
-            :type filter_value str or int
+            process finish_job request from worker
+            :type job: Job
         """
         self.jobstore.save_execute_record(job)
 
@@ -106,7 +94,7 @@ class RQMaster(BaseMaster):
 
     def _enqueue_job(self, key, job):
         """
-            enqueue job into redis queue
+            enqueue job into jobqueue
             :type key: str
             :type job: str or xmlrpc.Binary
         """
@@ -117,8 +105,6 @@ class RQMaster(BaseMaster):
                 self.jobqueue.enqueue(key, job)
             else:
                 self._enqueue_buffer_queue(key, job)
-
-
 
     def start(self):
         """

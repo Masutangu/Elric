@@ -33,10 +33,7 @@ class MemoryJobStore(BaseJobStore):
     def update_job(self, job):
         """
             update job
-            :type job_id: str
-            :type job_key: str
-            :type next_run_time: datetime.datetime
-            :type serialized_job: str or xmlrpclib.Binary
+            :type job: Job
         """
         if job.id not in self.job_info:
             raise JobDoesNotExist("update job failed! job [%s] does not exist" % job.id)
@@ -59,7 +56,7 @@ class MemoryJobStore(BaseJobStore):
     def remove_job(self, job):
         """
             remove job
-            :type job_id: str
+            :type job: Job
         """
         if job.id not in self.job_info:
             raise JobDoesNotExist("remove job failed! job [%s] does not exist" % job.id)

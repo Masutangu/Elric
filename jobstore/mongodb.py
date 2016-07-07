@@ -19,10 +19,7 @@ class MongoJobStore(BaseJobStore):
     def add_job(self, job):
         """
             add job
-            :type job_id: str
-            :type job_key: str
-            :type next_run_time: datetime.datetime
-            :type serialized_job: str or xmlrpclib.Binary
+            :type job: Job
         """
         next_timestamp = datetime_to_utc_timestamp(job.next_run_time)
         try:
@@ -40,10 +37,7 @@ class MongoJobStore(BaseJobStore):
     def update_job(self, job):
         """
             update job
-            :type job_id: str
-            :type job_key: str
-            :type next_run_time: datetime.datetime
-            :type serialized_job: str or xmlrpclib.Binary
+            :type job: Job
         """
         update_job_info = {}
         if job.job_key is not None:
@@ -64,7 +58,7 @@ class MongoJobStore(BaseJobStore):
     def remove_job(self, job):
         """
             remove job
-            :type job_id: str
+            :type job: Job
         """
         result = self.db.elric_jobs.delete_one({"_id": job.id})
         if result.deleted_count == 0:
