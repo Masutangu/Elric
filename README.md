@@ -12,17 +12,48 @@ Usage
 Setup environment in `settings.py`:
 
 ```python
-RPC_HOST = 'localhost'
-RPC_PORT = 8000
+DISTRIBUTED_LOCK_CONFIG = {
+    'server': {
+        'host': 'localhost',
+        'port': 6379,
+        'password': None,
+        'db': 1,
+    },
+    'resource': 'elric_distributed_lock',
+    'retry_count': 5,
+    'retry_delay': 0.2,
+}
 
-REDIS_HOST = 'localhost'
-REDIS_PORT = 6379
+JOB_QUEUE_CONFIG = {
+    'server': {
+        'host': 'localhost',
+        'port': 6379,
+        'password': None,
+        'db': 1,
+    },
+    'max_length': 100000,
+    'buffer_time': 10
+}
+
+FILTER_CONFIG = {
+    'server': {
+        'host': 'localhost',
+        'port': 6379,
+        'password': None,
+        'db': 0,
+    }
+}
+
+JOB_STORE_CONFIG = {
+    'server': {},
+    'maximum_records': 3
+}
 ```
 
 Create a master instance and start:
 
 ```python
-rq_master = RQMaster()
+rq_master = RQMasterExtend()
 rq_master.start()
 ```
 
@@ -35,7 +66,7 @@ def test_job(language=None):
 Create a worker instace, specify worker's name and listening keys. Submit job and start worker.
 ```python
 # worker will only receive job from listen_keys that have been provided here
-rq_worker = RQWorker(name='test', listen_keys='job1') 
+rq_worker = RQWorker(name='test', listen_keys=['job1', ])
 # submit job to master
 rq_worker.submit_job(test_job, 'job1', kwargs={'language': 'python'})
 # start worker, then worker will receive and execute job from master by listening job queue on listen keys you provided
@@ -60,10 +91,7 @@ Step 3. Start master
 python test_worker.py
 ```
 
-Todo list
----------
-- *Add Monitor for worker*
-- *Support job dependencies*
+Documentation [described in this blog post](http://masutangu.com/2016/07/elric-documentation/).
 
 
 
