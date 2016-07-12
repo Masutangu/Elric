@@ -16,11 +16,8 @@ from elric.core.exceptions import JobAlreadyExist, JobDoesNotExist, AlreadyRunni
 from elric.jobstore.mongodb import MongoJobStore
 from elric.core.job import Job
 from elric.core.utils import timedelta_seconds
-
 from elric.core import settings
-
-
-from core.lock import distributed_lock
+from elric.core.lock import distributed_lock
 
 
 class RQMasterBase(BaseMaster):
