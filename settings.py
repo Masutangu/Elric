@@ -39,7 +39,7 @@ JOB_STORE_CONFIG = {
     'maximum_records': 3
 }
 
-LOGGINGF_CONFIG = {
+LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {

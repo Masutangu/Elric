@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import sys
-sys.path.append('..')
-from worker.rqueue import RQWorker
+import os
+os.environ.setdefault('ELRIC_SETTINGS_MODULE', 'settings')
+
+from elric.worker.rqueue import RQWorker
 
 
 def wapper_job():
@@ -33,4 +34,5 @@ if __name__ == '__main__':
     rq_worker.submit_job(wapper_job, 'job1', trigger='interval', seconds=30)
     rq_worker.submit_job(test_job, 'job2', trigger='interval', seconds=8, kwargs={'language': 'python'})
     rq_worker.submit_job(test_cron_job, 'job2', trigger='cron', second=7)
+    rq_worker.submit_job(test_job, 'job2', need_filter=True, job_id='test_job')
     rq_worker.start()
